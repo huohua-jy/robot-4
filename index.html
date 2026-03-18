@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能复合材料救援机器人 - 科普展示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #334155;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .section-title {
+            position: relative;
+            padding-left: 1rem;
+        }
+
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 1.5rem;
+            background: linear-gradient(180deg, #0ea5e9, #06b6d4);
+            border-radius: 2px;
+        }
+
+        .model-container {
+            background: radial-gradient(circle at center, #f1f5f9 0%, #e2e8f0 100%);
+            border: 2px solid #cbd5e1;
+            position: relative;
+        }
+
+        .hotspot {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: #0ea5e9;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.3);
+            animation: pulse 2s infinite;
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .hotspot::after {
+            content: attr(data-number);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            max-width: 250px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 20;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 20px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #1e293b;
+        }
+
+        .hotspot:hover .tooltip {
+            opacity: 1;
+            bottom: 35px;
+        }
+
+        .material-layer {
+            background: linear-gradient(90deg, 
+                rgba(14, 165, 233, 0.1) 0%, 
+                rgba(14, 165, 233, 0.05) 100%);
+            border-left: 4px solid #0ea5e9;
+        }
+
+        .spec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .spec-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .spec-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0ea5e9;
+            line-height: 1;
+        }
+
+        .spec-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .comparison-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .comparison-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            color: #64748b;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #0ea5e9;
+            border-bottom-color: #0ea5e9;
+        }
+
+        .explode-view {
+            position: relative;
+            height: 400px;
+        }
+
+        .layer {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: all 0.5s ease;
+            cursor: pointer;
+        }
+
+        .layer:hover {
+            filter: brightness(1.1);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                        R
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800">RescueBot-Pro</h1>
+                        <p class="text-xs text-slate-500">智能复合材料救援机器人</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex gap-6 text-sm font-medium text-slate-600">
+                    <a href="#overview" class="hover:text-sky-600 transition">整体概览</a>
+                    <a href="#structure" class="hover:text-sky-600 transition">结构拆解</a>
+                    <a href="#materials" class="hover:text-sky-600 transition">材料科技</a>
+                    <a href="#specs" class="hover:text-sky-600 transition">技术参数</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+
+        <!-- Hero Section: 3D Model Viewer -->
+        <section id="overview" class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium mb-4">
+                    <span class="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></span>
+                    新一代救援装备
+                </div>
+                <h2 class="text-4xl font-bold text-slate-800 mb-4 leading-tight">
+                    碳纤维复合材料<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-cyan-500">让救援更轻、更强、更智能</span>
+                </h2>
+                <p class="text-slate-600 text-lg mb-6 leading-relaxed">
+                    采用航空级T700碳纤维机身与微胶囊自修复涂层，整机重量仅12.4kg，
+                    比传统铝合金结构轻40%，强度提升300%。配备LiDAR激光雷达与AI路径规划系统，
+                    可在复杂废墟环境中自主导航。
+                </p>
+                <div class="flex gap-4">
+                    <button onclick="startExplode()" class="px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white rounded-lg font-medium transition shadow-lg shadow-sky-500/30 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        拆解查看结构
+                    </button>
+                    <button onclick="startSimulation()" class="px-6 py-3 bg-white border-2 border-slate-300 hover:border-sky-500 text-slate-700 hover:text-sky-600 rounded-lg font-medium transition flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        观看仿真演示
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3D Model Container with Hotspots -->
+            <div class="model-container rounded-2xl h-[500px] relative overflow-hidden" id="modelContainer">
+                <div id="threejs-canvas" class="w-full h-full"></div>
+
+                <!-- Interactive Hotspots -->
+                <div class="hotspot" style="top: 30%; left: 60%;" data-number="1" onclick="showDetail('lidar')">
+                    <div class="tooltip">
+                        <strong>LiDAR激光雷达</strong><br>
+                        360°环境扫描，精度±2cm，有效范围100m
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 50%; left: 45%;" data-number="2" onclick="showDetail('body')">
+                    <div class="tooltip">
+                        <strong>碳纤维机身</strong><br>
+                        T700级碳纤维，比强度是钢的5倍
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 70%; left: 55%;" data-number="3" onclick="showDetail('track')">
+                    <div class="tooltip">
+                        <strong>履带式底盘</strong><br>
+                        自适应地形，可跨越30cm垂直障碍
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 45%; left: 75%;" data-number="4" onclick="showDetail('arm')">
+                    <div class="tooltip">
+                        <strong>机械臂</strong><br>
+                        6自由度，最大负载5kg，用于清除障碍
+                    </div>
+                </div>
+
+                <!-- View Controls -->
+                <div class="absolute bottom-4 right-4 flex gap-2">
+                    <button onclick="resetView()" class="p-2 bg-white/90 backdrop-blur rounded-lg shadow hover:bg-white transition" title="重置视角">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                    <button onclick="toggleRotate()" class="p-2 bg-white/90 backdrop-blur rounded-lg shadow hover:bg-white transition" title="自动旋转">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-sm text-slate-600">
+                    <span class="text-sky-500 font-medium">提示：</span>点击标记查看详情，拖拽旋转模型
+                </div>
+            </div>
+        </section>
+
+        <!-- Detail Panel (Dynamic) -->
+        <div id="detailPanel" class="hidden card rounded-2xl p-6 border-l-4 border-sky-500">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-bold text-slate-800" id="detailTitle">组件详情</h3>
+                <button onclick="closeDetail()" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="detailContent" class="text-slate-600"></div>
+        </div>
+
+        <!-- Structure Explosion View -->
+        <section id="structure" class="card rounded-2xl p-8">
+            <h2 class="section-title text-2xl font-bold text-slate-800 mb-6">分层结构拆解</h2>
+            <p class="text-slate-600 mb-8">点击各层查看材料组成与功能说明</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="explode-view" id="explodeView">
+                    <!-- SVG Exploded View -->
+                    <svg viewBox="0 0 400 400" class="w-full h-full">
+                        <!-- Layer 4: Outer Shell -->
+                        <g class="layer" id="layer4" style="top: 10%;" onclick="highlightLayer(4)">
+                            <rect x="100" y="50" width="200" height="80" rx="10" fill="url(#carbon)" stroke="#475569" stroke-width="2"/>
+                            <text x="200" y="95" text-anchor="middle" fill="white" font-size="14" font-weight="bold">自修复涂层</text>
+                            <line x1="310" y1="90" x2="350" y2="90" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="355" y="95" fill="#64748b" font-size="12">0.2mm</text>
+                        </g>
+
+                        <!-- Layer 3: Carbon Fiber Body -->
+                        <g class="layer" id="layer3" style="top: 30%;" onclick="highlightLayer(3)">
+                            <rect x="90" y="140" width="220" height="100" rx="8" fill="url(#carbon2)" stroke="#334155" stroke-width="2"/>
+                            <pattern id="carbon2" patternUnits="userSpaceOnUse" width="8" height="8">
+                                <rect width="8" height="8" fill="#1e293b"/>
+                                <path d="M0,8 L8,0 M-2,2 L2,-2 M6,10 L10,6" stroke="#334155" stroke-width="1"/>
+                            </pattern>
+                            <text x="200" y="195" text-anchor="middle" fill="white" font-size="14" font-weight="bold">T700碳纤维层</text>
+                            <line x1="315" y1="190" x2="350" y2="190" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="355" y="195" fill="#64748b" font-size="12">3mm</text>
+                        </g>
+
+                        <!-- Layer 2: Aluminum Frame -->
+                        <g class="layer" id="layer2" style="top: 55%;" onclick="highlightLayer(2)">
+                            <rect x="110" y="250" width="180" height="60" rx="4" fill="#94a3b8" stroke="#64748b" stroke-width="2"/>
+                            <text x="200" y="285" text-anchor="middle" fill="white" font-size="14" font-weight="bold">铝合金骨架</text>
+                            <line x1="295" y1="280" x2="350" y2="280" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="355" y="285" fill="#64748b" font-size="12">2mm</text>
+                        </g>
+
+                        <!-- Layer 1: Electronics -->
+                        <g class="layer" id="layer1" style="top: 75%;" onclick="highlightLayer(1)">
+                            <rect x="130" y="330" width="140" height="40" rx="4" fill="#0ea5e9" stroke="#0284c7" stroke-width="2"/>
+                            <text x="200" y="355" text-anchor="middle" fill="white" font-size="12" font-weight="bold">主控电路</text>
+                        </g>
+
+                        <!-- Definitions -->
+                        <defs>
+                            <pattern id="carbon" patternUnits="userSpaceOnUse" width="6" height="6">
+                                <rect width="6" height="6" fill="#0f172a"/>
+                                <path d="M0,6 L6,0" stroke="#1e293b" stroke-width="0.5"/>
+                            </pattern>
+                        </defs>
+                    </svg>
+                </div>
+
+                <div class="space-y-4" id="layerInfo">
+                    <div class="material-layer p-4 rounded-lg cursor-pointer transition hover:shadow-md" onclick="highlightLayer(4)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-slate-800 rounded flex items-center justify-center text-white text-sm font-bold">4</div>
+                            <h4 class="font-bold text-slate-800">微胶囊自修复涂层</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">含微胶囊的聚合物涂层，当表面产生裂纹时，胶囊破裂释放修复剂，24小时内自动愈合。</p>
+                    </div>
+
+                    <div class="material-layer p-4 rounded-lg cursor-pointer transition hover:shadow-md" onclick="highlightLayer(3)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-slate-700 rounded flex items-center justify-center text-white text-sm font-bold">3</div>
+                            <h4 class="font-bold text-slate-800">T700碳纤维复合材料</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">航空级碳纤维，强度4.9GPa，密度仅1.6g/cm³，比铝合金轻40%，比强度高5倍。</p>
+                    </div>
+
+                    <div class="material-layer p-4 rounded-lg cursor-pointer transition hover:shadow-md" onclick="highlightLayer(2)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-slate-400 rounded flex items-center justify-center text-white text-sm font-bold">2</div>
+                            <h4 class="font-bold text-slate-800">6061-T6铝合金骨架</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">内部支撑结构，提供刚性连接点，用于安装电机和传感器。</p>
+                    </div>
+
+                    <div class="material-layer p-4 rounded-lg cursor-pointer transition hover:shadow-md" onclick="highlightLayer(1)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-sky-500 rounded flex items-center justify-center text-white text-sm font-bold">1</div>
+                            <h4 class="font-bold text-slate-800">集成电子系统</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">NVIDIA Jetson主控、IMU惯性测量单元、5G通信模块、电池管理系统。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Materials Science -->
+        <section id="materials" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="card rounded-2xl p-6">
+                <h3 class="section-title text-xl font-bold text-slate-800 mb-4">碳纤维 vs 铝合金</h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600">重量</span>
+                            <span class="text-slate-800 font-medium">碳纤维轻40%</span>
+                        </div>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill bg-slate-400" style="width: 100%;"></div>
+                        </div>
+                        <div class="comparison-bar mt-1">
+                            <div class="comparison-fill bg-sky-500" style="width: 60%;"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>铝合金 20.5kg</span>
+                            <span class="text-sky-600 font-medium">碳纤维 12.4kg</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600">比强度</span>
+                            <span class="text-slate-800 font-medium">碳纤维高5倍</span>
+                        </div>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill bg-slate-400" style="width: 20%;"></div>
+                        </div>
+                        <div class="comparison-bar mt-1">
+                            <div class="comparison-fill bg-sky-500" style="width: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600">耐腐蚀性</span>
+                            <span class="text-slate-800 font-medium">碳纤维更优</span>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                            <div class="flex-1 h-2 bg-slate-300 rounded"></div>
+                            <div class="flex-1 h-2 bg-slate-300 rounded"></div>
+                            <div class="flex-1 h-2 bg-slate-200 rounded"></div>
+                            <span class="text-xs text-slate-500">铝</span>
+
+                            <div class="w-4"></div>
+
+                            <div class="flex-1 h-2 bg-sky-500 rounded"></div>
+                            <div class="flex-1 h-2 bg-sky-500 rounded"></div>
+                            <div class="flex-1 h-2 bg-sky-500 rounded"></div>
+                            <span class="text-xs text-sky-600 font-medium">碳</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card rounded-2xl p-6">
+                <h3 class="section-title text-xl font-bold text-slate-800 mb-4">自修复材料原理</h3>
+
+                <div class="relative h-48 bg-slate-50 rounded-lg overflow-hidden mb-4">
+                    <svg viewBox="0 0 300 150" class="w-full h-full">
+                        <!-- Microcapsules -->
+                        <circle cx="50" cy="75" r="20" fill="#fbbf24" opacity="0.8"/>
+                        <circle cx="50" cy="75" r="15" fill="#f59e0b"/>
+                        <text x="50" y="80" text-anchor="middle" fill="white" font-size="10">修复剂</text>
+
+                        <circle cx="120" cy="60" r="18" fill="#fbbf24" opacity="0.8"/>
+                        <circle cx="120" cy="60" r="13" fill="#f59e0b"/>
+
+                        <circle cx="100" cy="100" r="22" fill="#fbbf24" opacity="0.8"/>
+                        <circle cx="100" cy="100" r="17" fill="#f59e0b"/>
+
+                        <!-- Crack -->
+                        <path d="M 150 75 Q 180 70 200 75" stroke="#ef4444" stroke-width="3" fill="none" stroke-dasharray="5,5">
+                            <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite"/>
+                        </path>
+                        <text x="175" y="65" text-anchor="middle" fill="#ef4444" font-size="10">裂纹</text>
+
+                        <!-- Healing process -->
+                        <path d="M 200 75 L 240 75" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+
+                        <defs>
+                            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                                <path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/>
+                            </marker>
+                        </defs>
+
+                        <!-- Healed -->
+                        <rect x="250" y="50" width="40" height="50" fill="#22c55e" opacity="0.3" rx="5"/>
+                        <text x="270" y="80" text-anchor="middle" fill="#15803d" font-size="10">修复完成</text>
+                    </svg>
+                </div>
+
+                <ol class="space-y-2 text-sm text-slate-600 list-decimal list-inside">
+                    <li>材料受损产生裂纹</li>
+                    <li>微胶囊破裂释放修复剂</li>
+                    <li>修复剂与催化剂接触聚合</li>
+                    <li>24小时内恢复原有强度85%</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- Technical Specs -->
+        <section id="specs" class="card rounded-2xl p-8">
+            <h2 class="section-title text-2xl font-bold text-slate-800 mb-6">技术参数一览</h2>
+
+            <div class="spec-grid mb-8">
+                <div class="spec-item">
+                    <div class="spec-value">12.4</div>
+                    <div class="spec-label">整机重量 (kg)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">5.2</div>
+                    <div class="spec-label">最大载重 (kg)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">8</div>
+                    <div class="spec-label">续航时间 (h)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">3.5</div>
+                    <div class="spec-label">最高速度 (m/s)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">30</div>
+                    <div class="spec-label">越障高度 (cm)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">100</div>
+                    <div class="spec-label">遥控距离 (m)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">IP67</div>
+                    <div class="spec-label">防护等级</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">-20~60</div>
+                    <div class="spec-label">工作温度 (°C)</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-6">
+                <h4 class="font-bold text-slate-800 mb-4">核心组件配置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <span class="text-slate-500">主控制器：</span>
+                        <span class="text-slate-800 font-medium">NVIDIA Jetson Xavier NX</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">激光雷达：</span>
+                        <span class="text-slate-800 font-medium">Velodyne Puck LITE</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">相机系统：</span>
+                        <span class="text-slate-800 font-medium">Intel RealSense D435i</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">通信模块：</span>
+                        <span class="text-slate-800 font-medium">5G + WiFi 6</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">电池：</span>
+                        <span class="text-slate-800 font-medium">LiFePO4 24V 20Ah</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">电机：</span>
+                        <span class="text-slate-800 font-medium">无刷直流 150W×4</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Grid -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card rounded-xl p-6 flex gap-4">
+                <div class="feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1">轻量化设计</h4>
+                    <p class="text-sm text-slate-600">碳纤维机身仅12.4kg，单人可携带，快速部署灾区</p>
+                </div>
+            </div>
+
+            <div class="card rounded-xl p-6 flex gap-4">
+                <div class="feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1">自修复保护</h4>
+                    <p class="text-sm text-slate-600">微胶囊涂层自动修复表面划痕，延长使用寿命</p>
+                </div>
+            </div>
+
+            <div class="card rounded-xl p-6 flex gap-4">
+                <div class="feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1">AI自主导航</h4>
+                    <p class="text-sm text-slate-600">LiDAR+视觉融合SLAM，复杂环境自主路径规划</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+            <p>智能复合材料救援机器人仿真系统 | 材料科学与工程专业作品</p>
+            <p class="mt-2">本作品使用AI辅助开发，核心创意与材料专业内容均为原创</p>
+        </div>
+    </footer>
+
+    <script>
+        // Three.js 3D Model Setup
+        let scene, camera, renderer, robot, controls;
+        let isRotating = false;
+        let rotationSpeed = 0.005;
+
+        function initThreeJS() {
+            const container = document.getElementById('threejs-canvas');
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf1f5f9);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(5, 3, 5);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            const fillLight = new THREE.DirectionalLight(0x0ea5e9, 0.3);
+            fillLight.position.set(-5, 0, -5);
+            scene.add(fillLight);
+
+            // Create Robot Model
+            createRobot();
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 3;
+            controls.maxDistance = 10;
+
+            // Animation loop
+            animate();
+
+            // Handle resize
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createRobot() {
+            robot = new THREE.Group();
+
+            // Materials
+            const carbonMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                roughness: 0.3,
+                metalness: 0.7,
+            });
+
+            const metalMaterial = new THREE.MeshStandardMaterial({
+                color: 0x64748b,
+                roughness: 0.4,
+                metalness: 0.8,
+            });
+
+            const sensorMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9,
+                emissive: 0x0ea5e9,
+                emissiveIntensity: 0.5,
+                roughness: 0.2,
+            });
+
+            // Main Body
+            const bodyGeometry = new THREE.BoxGeometry(1.5, 0.6, 1);
+            const body = new THREE.Mesh(bodyGeometry, carbonMaterial);
+            body.position.y = 0.5;
+            body.castShadow = true;
+            robot.add(body);
+
+            // LiDAR Dome
+            const lidarGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 32);
+            const lidar = new THREE.Mesh(lidarGeometry, sensorMaterial);
+            lidar.position.y = 0.9;
+            robot.add(lidar);
+
+            // Camera/Visual Sensor
+            const cameraGeometry = new THREE.BoxGeometry(0.3, 0.15, 0.1);
+            const camera = new THREE.Mesh(cameraGeometry, new THREE.MeshStandardMaterial({ color: 0x111111 }));
+            camera.position.set(0, 0.6, 0.51);
+            robot.add(camera);
+
+            // Left Track
+            const trackGeometry = new THREE.BoxGeometry(0.4, 0.5, 1.2);
+            const leftTrack = new THREE.Mesh(trackGeometry, metalMaterial);
+            leftTrack.position.set(-0.9, 0.3, 0);
+            leftTrack.castShadow = true;
+            robot.add(leftTrack);
+
+            // Right Track
+            const rightTrack = new THREE.Mesh(trackGeometry, metalMaterial);
+            rightTrack.position.set(0.9, 0.3, 0);
+            rightTrack.castShadow = true;
+            robot.add(rightTrack);
+
+            // Track wheels detail
+            for (let i = 0; i < 3; i++) {
+                const wheelGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.45, 16);
+                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+
+                const leftWheel = new THREE.Mesh(wheelGeo, wheelMat);
+                leftWheel.rotation.z = Math.PI / 2;
+                leftWheel.position.set(-0.9, 0.15, -0.4 + i * 0.4);
+                robot.add(leftWheel);
+
+                const rightWheel = new THREE.Mesh(wheelGeo, wheelMat);
+                rightWheel.rotation.z = Math.PI / 2;
+                rightWheel.position.set(0.9, 0.15, -0.4 + i * 0.4);
+                robot.add(rightWheel);
+            }
+
+            // Mechanical Arm (simplified)
+            const armBaseGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.3);
+            const armBase = new THREE.Mesh(armBaseGeometry, metalMaterial);
+            armBase.position.set(0.6, 0.6, 0);
+            robot.add(armBase);
+
+            const armSegment1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.1), metalMaterial);
+            armSegment1.position.set(0.7, 0.9, 0);
+            armSegment1.rotation.z = -0.3;
+            robot.add(armSegment1);
+
+            const armSegment2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.08), metalMaterial);
+            armSegment2.position.set(0.9, 1.1, 0);
+            armSegment2.rotation.z = 0.5;
+            robot.add(armSegment2);
+
+            // Gripper
+            const gripperGeometry = new THREE.BoxGeometry(0.15, 0.1, 0.05);
+            const gripper = new THREE.Mesh(gripperGeometry, new THREE.MeshStandardMaterial({ color: 0xf59e0b }));
+            gripper.position.set(1.05, 1.15, 0);
+            robot.add(gripper);
+
+            // Antenna
+            const antennaGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.6);
+            const antenna = new THREE.Mesh(antennaGeo, metalMaterial);
+            antenna.position.set(-0.6, 0.9, -0.3);
+            robot.add(antenna);
+
+            // Status LEDs
+            const ledGeo = new THREE.SphereGeometry(0.03);
+            const ledMat = new THREE.MeshStandardMaterial({ 
+                color: 0x22c55e, 
+                emissive: 0x22c55e,
+                emissiveIntensity: 0.8 
+            });
+            const led = new THREE.Mesh(ledGeo, ledMat);
+            led.position.set(0.6, 0.65, 0.4);
+            robot.add(led);
+
+            // Ground plane (shadow catcher)
+            const planeGeometry = new THREE.PlaneGeometry(10, 10);
+            const planeMaterial = new THREE.ShadowMaterial({ opacity: 0.1 });
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.y = 0;
+            plane.receiveShadow = true;
+            scene.add(plane);
+
+            scene.add(robot);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isRotating && robot) {
+                robot.rotation.y += rotationSpeed;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('threejs-canvas');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function resetView() {
+            camera.position.set(5, 3, 5);
+            controls.reset();
+            if (robot) {
+                robot.rotation.y = 0;
+            }
+        }
+
+        function toggleRotate() {
+            isRotating = !isRotating;
+        }
+
+        // Detail Panel Functions
+        const details = {
+            lidar: {
+                title: 'LiDAR激光雷达系统',
+                content: `
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-slate-50 p-3 rounded">
+                            <div class="text-sm text-slate-500">探测距离</div>
+                            <div class="text-lg font-bold text-slate-800">100m</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded">
+                            <div class="text-sm text-slate-500">精度</div>
+                            <div class="text-lg font-bold text-slate-800">±2cm</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded">
+                            <div class="text-sm text-slate-500">扫描频率</div>
+                            <div class="text-lg font-bold text-slate-800">10Hz</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded">
+                            <div class="text-sm text-slate-500">视场角</div>
+                            <div class="text-lg font-bold text-slate-800">360°</div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-slate-600">采用Velodyne Puck LITE激光雷达，配合SLAM算法实现实时三维建图，可在烟雾、低光照环境下正常工作。</p>
+                `
+            },
+            body: {
+                title: 'T700碳纤维机身',
+                content: `
+                    <div class="flex gap-4 mt-4">
+                        <div class="flex-1 bg-slate-50 p-4 rounded text-center">
+                            <div class="text-2xl font-bold text-sky-600">1.6</div>
+                            <div class="text-xs text-slate-500">g/cm³ 密度</div>
+                        </div>
+                        <div class="flex-1 bg-slate-50 p-4 rounded text-center">
+                            <div class="text-2xl font-bold text-sky-600">4.9</div>
+                            <div class="text-xs text-slate-500">GPa 强度</div>
+                        </div>
+                        <div class="flex-1 bg-slate-50 p-4 rounded text-center">
+                            <div class="text-2xl font-bold text-sky-600">230</div>
+                            <div class="text-xs text-slate-500">GPa 模量</div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-slate-600">采用航空级T700碳纤维预浸料，热压罐成型工艺。比强度是铝合金的5倍，比刚度是钢的3倍，同时具备优异的耐腐蚀性和抗疲劳性能。</p>
+                `
+            },
+            track: {
+                title: '自适应履带底盘',
+                content: `
+                    <ul class="mt-4 space-y-2 text-slate-600">
+                        <li class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            可跨越30cm垂直障碍
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            爬坡角度最大45°
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            独立悬挂减震系统
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            4×150W无刷直流电机驱动
+                        </li>
+                    </ul>
+                `
+            },
+            arm: {
+                title: '6自由度机械臂',
+                content: `
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">臂展</span>
+                            <span class="font-medium">0.8m</span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">最大负载</span>
+                            <span class="font-medium">5kg</span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">重复定位精度</span>
+                            <span class="font-medium">±1mm</span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">末端执行器</span>
+                            <span class="font-medium">可更换夹爪/ cutter</span>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-slate-600">用于清除小型障碍物、开启门窗、抓取物资。配备力矩传感器，防止对被困者造成二次伤害。</p>
+                `
+            }
+        };
+
+        function showDetail(type) {
+            const panel = document.getElementById('detailPanel');
+            const title = document.getElementById('detailTitle');
+            const content = document.getElementById('detailContent');
+
+            title.textContent = details[type].title;
+            content.innerHTML = details[type].content;
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.add('hidden');
+        }
+
+        // Exploded View Animation
+        let isExploded = false;
+        function startExplode() {
+            isExploded = !isExploded;
+            const layers = document.querySelectorAll('.layer');
+
+            if (isExploded) {
+                document.getElementById('layer4').style.transform = 'translateX(-50%) translateY(-60px)';
+                document.getElementById('layer3').style.transform = 'translateX(-50%) translateY(-20px)';
+                document.getElementById('layer2').style.transform = 'translateX(-50%) translateY(20px)';
+                document.getElementById('layer1').style.transform = 'translateX(-50%) translateY(60px)';
+            } else {
+                layers.forEach(layer => {
+                    layer.style.transform = 'translateX(-50%)';
+                });
+            }
+        }
+
+        function highlightLayer(num) {
+            // Reset all layers
+            document.querySelectorAll('.layer').forEach(l => {
+                l.style.opacity = '0.3';
+            });
+            document.querySelectorAll('.material-layer').forEach(l => {
+                l.style.opacity = '0.5';
+            });
+
+            // Highlight selected
+            const layer = document.getElementById('layer' + num);
+            const info = document.querySelectorAll('.material-layer')[4 - num];
+            if (layer) layer.style.opacity = '1';
+            if (info) {
+                info.style.opacity = '1';
+                info.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                document.querySelectorAll('.layer').forEach(l => {
+                    l.style.opacity = '1';
+                });
+                document.querySelectorAll('.material-layer').forEach(l => {
+                    l.style.opacity = '1';
+                });
+            }, 2000);
+        }
+
+        function startSimulation() {
+            alert('仿真功能演示：\n\n在完整版本中，这里将展示：\n1. 废墟环境路径规划\n2. 实时避障决策\n3. 材料应力分析\n4. 自修复过程模拟\n\n当前版本重点展示机器人结构与材料特性。');
+        }
+
+        // Initialize
+        window.onload = function() {
+            initThreeJS();
+        };
+    </script>
+</body>
+</html>
