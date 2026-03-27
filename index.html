@@ -3,1402 +3,1020 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能复合材料救援机器人 - 终极仿真系统</title>
+    <title>智能复合材料救援机器人 - 科普展示</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
         body {
-            font-family: 'Inter', 'Noto Sans SC', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-            color: #e2e8f0;
-            min-height: 100vh;
-            overflow-x: hidden;
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #334155;
         }
-        
-        /* Glassmorphism Panels */
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.6);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
         }
-        
-        .glass-panel-light {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
         }
-        
-        /* 3D Viewport */
-        #viewport-container {
+
+        .section-title {
             position: relative;
-            height: 600px;
-            background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 70%);
-            border: 2px solid rgba(59, 130, 246, 0.3);
-            overflow: hidden;
+            padding-left: 1rem;
         }
-        
-        #threejs-canvas {
-            width: 100%;
-            height: 100%;
-        }
-        
-        /* Simulation Overlay */
-        .sim-overlay {
+
+        .section-title::before {
+            content: '';
             position: absolute;
-            top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 1.5rem;
+            background: linear-gradient(180deg, #0ea5e9, #06b6d4);
+            border-radius: 2px;
         }
-        
-        .sim-hud {
-            position: absolute;
-            padding: 1rem;
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 12px;
-            pointer-events: auto;
+
+        .model-container {
+            background: radial-gradient(circle at center, #f1f5f9 0%, #e2e8f0 100%);
+            border: 2px solid #cbd5e1;
+            position: relative;
         }
-        
-        /* Hotspots */
-        .hotspot-3d {
+
+        .hotspot {
             position: absolute;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #3b82f6 0%, #1d4ed8 100%);
+            width: 24px;
+            height: 24px;
+            background: #0ea5e9;
             border: 3px solid #ffffff;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+            border-radius: 50%;
             cursor: pointer;
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.3);
+            animation: pulse 2s infinite;
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .hotspot::after {
+            content: attr(data-number);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
             font-weight: bold;
-            font-size: 14px;
-            transition: transform 0.3s;
         }
-        
-        .hotspot-3d:hover {
-            transform: scale(1.2);
-        }
-        
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-        }
-        
-        /* Controls */
-        .control-slider {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            background: rgba(148, 163, 184, 0.2);
-            border-radius: 3px;
-            outline: none;
-        }
-        
-        .control-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            background: linear-gradient(135deg, #3b82f6, #06b6d4);
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-        }
-        
-        /* Tabs */
-        .tab-btn {
-            padding: 0.75rem 1.5rem;
-            background: transparent;
-            border: none;
-            color: #94a3b8;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            border-bottom: 2px solid transparent;
-        }
-        
-        .tab-btn.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
-        }
-        
-        /* Material Cards */
-        .material-card {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            transition: all 0.3s;
-        }
-        
-        .material-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
-        }
-        
-        /* Grid Pattern */
-        .grid-pattern {
-            background-image: 
-                linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
-            background-size: 50px 50px;
-        }
-        
-        /* Scanning Effect */
-        .scan-line {
+
+        .tooltip {
             position: absolute;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
-            animation: scan 3s linear infinite;
-            opacity: 0.6;
-        }
-        
-        @keyframes scan {
-            0% { top: 0%; }
-            100% { top: 100%; }
-        }
-        
-        /* Path Visualization */
-        .path-trail {
-            stroke: #3b82f6;
-            stroke-width: 3;
-            fill: none;
-            stroke-dasharray: 10, 5;
-            animation: dash 20s linear infinite;
-            filter: drop-shadow(0 0 5px #3b82f6);
-        }
-        
-        @keyframes dash {
-            to { stroke-dashoffset: -100; }
-        }
-        
-        /* Mini Map */
-        .minimap {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 200px;
-            height: 150px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 2px solid rgba(59, 130, 246, 0.5);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        
-        /* Status Indicators */
-        .status-led {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            animation: blink 2s infinite;
-        }
-        
-        .status-led.active { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
-        .status-led.warning { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
-        .status-led.error { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        /* Exploded View */
-        .explode-layer {
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* Loading Screen */
-        #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0f172a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.5s;
-        }
-        
-        .loader {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(59, 130, 246, 0.2);
-            border-top-color: #3b82f6;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Tooltip */
-        .tooltip-custom {
-            position: absolute;
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(59, 130, 246, 0.5);
-            padding: 1rem;
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 1rem;
             border-radius: 8px;
             font-size: 0.875rem;
-            max-width: 300px;
-            z-index: 1000;
-            pointer-events: none;
+            max-width: 250px;
             opacity: 0;
+            pointer-events: none;
             transition: opacity 0.3s;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
         }
-        
-        .tooltip-custom.visible {
+
+        .tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 20px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #1e293b;
+        }
+
+        .hotspot:hover .tooltip {
             opacity: 1;
+            bottom: 35px;
         }
-        
-        /* Data Stream Effect */
-        .data-stream {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            color: #3b82f6;
-            opacity: 0.6;
+
+        .material-layer {
+            background: linear-gradient(90deg, 
+                rgba(14, 165, 233, 0.1) 0%, 
+                rgba(14, 165, 233, 0.05) 100%);
+            border-left: 4px solid #0ea5e9;
+        }
+
+        .spec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .spec-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .spec-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0ea5e9;
+            line-height: 1;
+        }
+
+        .spec-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .comparison-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
             overflow: hidden;
-            white-space: nowrap;
+            position: relative;
         }
-        
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .sim-hud { font-size: 12px; padding: 0.5rem; }
-            .minimap { width: 150px; height: 100px; }
+
+        .comparison-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            color: #64748b;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #0ea5e9;
+            border-bottom-color: #0ea5e9;
+        }
+
+        .explode-view {
+            position: relative;
+            height: 400px;
+        }
+
+        .layer {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: all 0.5s ease;
+            cursor: pointer;
+        }
+
+        .layer:hover {
+            filter: brightness(1.1);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
         }
     </style>
 </head>
-<body>
-    <!-- Loading Screen -->
-    <div id="loading-screen">
-        <div class="loader mb-4"></div>
-        <div class="text-blue-400 font-mono text-sm">INITIALIZING SIMULATION SYSTEM...</div>
-        <div class="text-slate-500 text-xs mt-2">Loading Three.js | Generating Terrain | Calibrating Sensors</div>
-    </div>
-
-    <!-- Main Container -->
-    <div class="min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="glass-panel sticky top-0 z-50 border-b border-slate-700">
-            <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                        </svg>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                        R
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                            RescueBot-Pro Ultimate
-                        </h1>
-                        <p class="text-xs text-slate-400 flex items-center gap-2">
-                            <span class="status-led active"></span>
-                            系统运行正常 | 仿真模式就绪
-                        </p>
+                        <h1 class="text-xl font-bold text-slate-800">RescueBot-Pro</h1>
+                        <p class="text-xs text-slate-500">智能复合材料救援机器人</p>
                     </div>
                 </div>
-                
-                <nav class="hidden md:flex gap-1">
-                    <button onclick="switchTab('simulation')" class="tab-btn active" id="tab-simulation">实时仿真</button>
-                    <button onclick="switchTab('structure')" class="tab-btn" id="tab-structure">结构拆解</button>
-                    <button onclick="switchTab('materials')" class="tab-btn" id="tab-materials">材料分析</button>
-                    <button onclick="switchTab('data')" class="tab-btn" id="tab-data">性能数据</button>
+                <nav class="hidden md:flex gap-6 text-sm font-medium text-slate-600">
+                    <a href="#overview" class="hover:text-sky-600 transition">整体概览</a>
+                    <a href="#structure" class="hover:text-sky-600 transition">结构拆解</a>
+                    <a href="#materials" class="hover:text-sky-600 transition">材料科技</a>
+                    <a href="#specs" class="hover:text-sky-600 transition">技术参数</a>
                 </nav>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <!-- Main Content -->
-        <main class="flex-1 max-w-7xl mx-auto w-full p-4 space-y-4">
-            
-            <!-- Top Bar: Quick Stats -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="glass-panel rounded-xl p-4 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="text-xs text-slate-400">系统状态</div>
-                        <div class="text-sm font-bold text-green-400" id="systemStatus">运行中</div>
-                    </div>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+
+        <!-- Hero Section: 3D Model Viewer -->
+        <section id="overview" class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium mb-4">
+                    <span class="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></span>
+                    新一代救援装备
                 </div>
-                
-                <div class="glass-panel rounded-xl p-4 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-.806-.984A1 1 0 0121 6.618l-4.553-.894M9 7h6m0 10V7m0 10L9 7"></path>
+                <h2 class="text-4xl font-bold text-slate-800 mb-4 leading-tight">
+                    碳纤维复合材料<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-cyan-500">让救援更轻、更强、更智能</span>
+                </h2>
+                <p class="text-slate-600 text-lg mb-6 leading-relaxed">
+                    采用航空级T700碳纤维机身与微胶囊自修复涂层，整机重量仅12.4kg，
+                    比传统铝合金结构轻40%，强度提升300%。配备LiDAR激光雷达与AI路径规划系统，
+                    可在复杂废墟环境中自主导航。
+                </p>
+                <div class="flex gap-4">
+                    <button onclick="startExplode()" class="px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white rounded-lg font-medium transition shadow-lg shadow-sky-500/30 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                         </svg>
-                    </div>
-                    <div>
-                        <div class="text-xs text-slate-400">仿真时间</div>
-                        <div class="text-sm font-bold font-mono" id="simTime">00:00:00</div>
-                    </div>
-                </div>
-                
-                <div class="glass-panel rounded-xl p-4 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        拆解查看结构
+                    </button>
+                    <button onclick="startSimulation()" class="px-6 py-3 bg-white border-2 border-slate-300 hover:border-sky-500 text-slate-700 hover:text-sky-600 rounded-lg font-medium transition flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                    </div>
-                    <div>
-                        <div class="text-xs text-slate-400">路径效率</div>
-                        <div class="text-sm font-bold text-blue-400" id="pathEfficiency">92.4%</div>
-                    </div>
-                </div>
-                
-                <div class="glass-panel rounded-xl p-4 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="text-xs text-slate-400">材料状态</div>
-                        <div class="text-sm font-bold text-cyan-400">自修复激活</div>
-                    </div>
+                        观看仿真演示
+                    </button>
                 </div>
             </div>
 
-            <!-- Main Viewport Area -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                
-                <!-- 3D Viewport (Takes 2/3 width) -->
-                <div class="lg:col-span-2 space-y-4">
-                    <div id="viewport-container" class="rounded-2xl relative">
-                        <div id="threejs-canvas"></div>
-                        
-                        <!-- Scanning Effect -->
-                        <div class="scan-line"></div>
-                        
-                        <!-- Simulation HUD -->
-                        <div class="sim-hud top-4 left-4">
-                            <div class="text-xs text-slate-400 mb-1">视角控制</div>
-                            <div class="flex gap-2">
-                                <button onclick="setCameraView('top')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs transition">俯视</button>
-                                <button onclick="setCameraView('side')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs transition">侧视</button>
-                                <button onclick="setCameraView('follow')" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs transition">跟随</button>
-                            </div>
-                        </div>
-                        
-                        <!-- Simulation Controls -->
-                        <div class="sim-hud top-4 right-4">
-                            <div class="text-xs text-slate-400 mb-2">仿真控制</div>
-                            <div class="flex gap-2">
-                                <button onclick="toggleSimulation()" id="simBtn" class="w-8 h-8 bg-green-600 hover:bg-green-500 rounded-full flex items-center justify-center transition">
-                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                                </button>
-                                <button onclick="resetSimulation()" class="w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded-full flex items-center justify-center transition">
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                                </button>
-                                <button onclick="toggleHeatmap()" class="w-8 h-8 bg-purple-600 hover:bg-purple-500 rounded-full flex items-center justify-center transition" title="应力热图">
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Robot Telemetry -->
-                        <div class="sim-hud bottom-4 left-4 min-w-[200px]">
-                            <div class="text-xs text-slate-400 mb-2">机器人遥测</div>
-                            <div class="space-y-1 text-xs font-mono">
-                                <div class="flex justify-between">
-                                    <span class="text-slate-500">位置:</span>
-                                    <span class="text-blue-400" id="robotPos">X:0 Y:0 Z:0</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-slate-500">速度:</span>
-                                    <span class="text-green-400" id="robotSpeed">0.0 m/s</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-slate-500">航向:</span>
-                                    <span class="text-yellow-400" id="robotHeading">0°</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-slate-500">电池:</span>
-                                    <div class="flex items-center gap-1">
-                                        <div class="w-16 h-2 bg-slate-700 rounded-full overflow-hidden">
-                                            <div class="h-full bg-green-500 rounded-full" style="width: 85%"></div>
-                                        </div>
-                                        <span class="text-green-400">85%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Mini Map -->
-                        <div class="minimap">
-                            <canvas id="minimapCanvas" width="200" height="150"></canvas>
-                        </div>
-                        
-                        <!-- Data Stream -->
-                        <div class="absolute bottom-4 right-[240px] text-xs font-mono text-blue-400/60 hidden md:block">
-                            <div class="data-stream">> LiDAR: SCANNING...</div>
-                            <div class="data-stream">> IMU: CALIBRATED</div>
-                            <div class="data-stream">> PATH: OPTIMIZED</div>
-                            <div class="data-stream">> CARBON: NOMINAL</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Path Visualization -->
-                    <div class="glass-panel rounded-xl p-4 h-32 relative overflow-hidden">
-                        <div class="text-xs text-slate-400 mb-2">实时路径轨迹</div>
-                        <canvas id="pathCanvas" class="w-full h-full"></canvas>
+            <!-- 3D Model Container with Hotspots -->
+            <div class="model-container rounded-2xl h-[500px] relative overflow-hidden" id="modelContainer">
+                <div id="threejs-canvas" class="w-full h-full"></div>
+
+                <!-- Interactive Hotspots -->
+                <div class="hotspot" style="top: 30%; left: 60%;" data-number="1" onclick="showDetail('lidar')">
+                    <div class="tooltip">
+                        <strong>LiDAR激光雷达</strong><br>
+                        360°环境扫描，精度±2cm，有效范围100m
                     </div>
                 </div>
-                
-                <!-- Control Panel (Takes 1/3 width) -->
+
+                <div class="hotspot" style="top: 50%; left: 45%;" data-number="2" onclick="showDetail('body')">
+                    <div class="tooltip">
+                        <strong>碳纤维机身</strong><br>
+                        T700级碳纤维，比强度是钢的5倍
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 70%; left: 55%;" data-number="3" onclick="showDetail('track')">
+                    <div class="tooltip">
+                        <strong>履带式底盘</strong><br>
+                        自适应地形，可跨越30cm垂直障碍
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 45%; left: 75%;" data-number="4" onclick="showDetail('arm')">
+                    <div class="tooltip">
+                        <strong>机械臂</strong><br>
+                        6自由度，最大负载5kg，用于清除障碍
+                    </div>
+                </div>
+
+                <!-- View Controls -->
+                <div class="absolute bottom-4 right-4 flex gap-2">
+                    <button onclick="resetView()" class="p-2 bg-white/90 backdrop-blur rounded-lg shadow hover:bg-white transition" title="重置视角">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                    <button onclick="toggleRotate()" class="p-2 bg-white/90 backdrop-blur rounded-lg shadow hover:bg-white transition" title="自动旋转">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-sm text-slate-600">
+                    <span class="text-sky-500 font-medium">提示：</span>点击标记查看详情，拖拽旋转模型
+                </div>
+            </div>
+        </section>
+
+        <!-- Detail Panel (Dynamic) -->
+        <div id="detailPanel" class="hidden card rounded-2xl p-6 border-l-4 border-sky-500">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-bold text-slate-800" id="detailTitle">组件详情</h3>
+                <button onclick="closeDetail()" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="detailContent" class="text-slate-600"></div>
+        </div>
+
+        <!-- Structure Explosion View -->
+        <section id="structure" class="card rounded-2xl p-8">
+            <h2 class="section-title text-2xl font-bold text-slate-800 mb-6">分层结构拆解</h2>
+            <p class="text-slate-600 mb-8">点击各层查看材料组成与功能说明</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="explode-view" id="explodeView">
+                    <!-- SVG Exploded View -->
+                    <svg viewBox="0 0 400 400" class="w-full h-full">
+                        <!-- Layer 4: Outer Shell -->
+                        <g class="layer" id="layer4" style="top: 10%;" onclick="highlightLayer(4)">
+                            <rect x="100" y="50" width="200" height="80" rx="10" fill="url(#carbon)" stroke="#475569" stroke-width="2"/>
+                            <text x="200" y="95" text-anchor="middle" fill="white" font-size="14" font-weight="bold">自修复涂层</text>
+                            <line x1="310" y1="90" x2="350" y2="90" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="355" y="95" fill="#64748b" font-size="12">0.2mm</text>
+                        </g>
+
+                        <!-- Layer 3: Carbon Fiber Body -->
+                        <g class="layer" id="layer3" style="top: 30%;" onclick="highlightLayer(3)">
+                            <rect x="90" y="140" width="220" height="100" rx="8" fill="url(#carbon2)" stroke="#334155" stroke-width="2"/>
+                            <pattern id="carbon2" patternUnits="userSpaceOnUse" width="8" height="8">
+                                <rect width="8" height="8" fill="#1e293b"/>
+                                <path d="M0,8 L8,0 M-2,2 L2,-2 M6,10 L10,6" stroke="#334155" stroke-width="1"/>
+                            </pattern>
+                            <text x="200" y="195" text-anchor="middle" fill="white" font-size="14" font-weight="bold">T700碳纤维层</text>
+                            <line x1="315" y1="190" x2="350" y2="190" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="355" y="195" fill="#64748b" font-size="12">3mm</text>
+                        </g>
+
+                        <!-- Layer 2: Aluminum Frame -->
+                        <g class="layer" id="layer2" style="top: 55%;" onclick="highlightLayer(2)">
+                            <rect x="110" y="250" width="180" height="60" rx="4" fill="#94a3b8" stroke="#64748b" stroke-width="2"/>
+                            <text x="200" y="285" text-anchor="middle" fill="white" font-size="14" font-weight="bold">铝合金骨架</text>
+                            <line x1="295" y1="280" x2="350" y2="280" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="355" y="285" fill="#64748b" font-size="12">2mm</text>
+                        </g>
+
+                        <!-- Layer 1: Electronics -->
+                        <g class="layer" id="layer1" style="top: 75%;" onclick="highlightLayer(1)">
+                            <rect x="130" y="330" width="140" height="40" rx="4" fill="#0ea5e9" stroke="#0284c7" stroke-width="2"/>
+                            <text x="200" y="355" text-anchor="middle" fill="white" font-size="12" font-weight="bold">主控电路</text>
+                        </g>
+
+                        <!-- Definitions -->
+                        <defs>
+                            <pattern id="carbon" patternUnits="userSpaceOnUse" width="6" height="6">
+                                <rect width="6" height="6" fill="#0f172a"/>
+                                <path d="M0,6 L6,0" stroke="#1e293b" stroke-width="0.5"/>
+                            </pattern>
+                        </defs>
+                    </svg>
+                </div>
+
+                <div class="space-y-4" id="layerInfo">
+                    <div class="material-layer p-4 rounded-lg cursor-pointer transition hover:shadow-md" onclick="highlightLayer(4)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-slate-800 rounded flex items-center justify-center text-white text-sm font-bold">4</div>
+                            <h4 class="font-bold text-slate-800">微胶囊自修复涂层</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">含微胶囊的聚合物涂层，当表面产生裂纹时，胶囊破裂释放修复剂，24小时内自动愈合。</p>
+                    </div>
+
+                    <div class="material-layer p-4 rounded-lg cursor-pointer transition hover:shadow-md" onclick="highlightLayer(3)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-slate-700 rounded flex items-center justify-center text-white text-sm font-bold">3</div>
+                            <h4 class="font-bold text-slate-800">T700碳纤维复合材料</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">航空级碳纤维，强度4.9GPa，密度仅1.6g/cm³，比铝合金轻40%，比强度高5倍。</p>
+                    </div>
+
+                    <div class="material-layer p-4 rounded-lg cursor-pointer transition hover:shadow-md" onclick="highlightLayer(2)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-slate-400 rounded flex items-center justify-center text-white text-sm font-bold">2</div>
+                            <h4 class="font-bold text-slate-800">6061-T6铝合金骨架</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">内部支撑结构，提供刚性连接点，用于安装电机和传感器。</p>
+                    </div>
+
+                    <div class="material-layer p-4 rounded-lg cursor-pointer transition hover:shadow-md" onclick="highlightLayer(1)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 bg-sky-500 rounded flex items-center justify-center text-white text-sm font-bold">1</div>
+                            <h4 class="font-bold text-slate-800">集成电子系统</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">NVIDIA Jetson主控、IMU惯性测量单元、5G通信模块、电池管理系统。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Materials Science -->
+        <section id="materials" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="card rounded-2xl p-6">
+                <h3 class="section-title text-xl font-bold text-slate-800 mb-4">碳纤维 vs 铝合金</h3>
+
                 <div class="space-y-4">
-                    
-                    <!-- Environment Controls -->
-                    <div class="glass-panel rounded-xl p-5">
-                        <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                            环境参数
-                        </h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="text-slate-400">地形复杂度</span>
-                                    <span class="text-blue-400" id="terrainValue">中等</span>
-                                </div>
-                                <input type="range" min="1" max="5" value="3" class="control-slider" id="terrainSlider" oninput="updateTerrain(this.value)">
-                                <div class="flex justify-between text-[10px] text-slate-600 mt-1">
-                                    <span>平坦</span><span>极复杂</span>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="text-slate-400">障碍密度</span>
-                                    <span class="text-blue-400" id="obstacleValue">35%</span>
-                                </div>
-                                <input type="range" min="0" max="80" value="35" class="control-slider" id="obstacleSlider" oninput="updateObstacles(this.value)">
-                            </div>
-                            
-                            <div>
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="text-slate-400">光照条件</span>
-                                    <span class="text-blue-400" id="lightValue">正常</span>
-                                </div>
-                                <input type="range" min="1" max="3" value="2" class="control-slider" id="lightSlider" oninput="updateLighting(this.value)">
-                            </div>
-                            
-                            <div>
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="text-slate-400">机器人速度</span>
-                                    <span class="text-blue-400" id="speedValue">1.5 m/s</span>
-                                </div>
-                                <input type="range" min="0.5" max="3.5" step="0.1" value="1.5" class="control-slider" id="speedSlider" oninput="updateSpeed(this.value)">
-                            </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600">重量</span>
+                            <span class="text-slate-800 font-medium">碳纤维轻40%</span>
                         </div>
-                        
-                        <div class="mt-4 pt-4 border-t border-slate-700">
-                            <div class="text-xs text-slate-500 mb-2">环境难度评级</div>
-                            <div class="flex items-center gap-2">
-                                <div class="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
-                                    <div id="difficultyBar" class="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full transition-all duration-500" style="width: 50%"></div>
-                                </div>
-                                <span id="difficultyText" class="text-xs font-bold text-yellow-400">B级</span>
-                            </div>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill bg-slate-400" style="width: 100%;"></div>
+                        </div>
+                        <div class="comparison-bar mt-1">
+                            <div class="comparison-fill bg-sky-500" style="width: 60%;"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>铝合金 20.5kg</span>
+                            <span class="text-sky-600 font-medium">碳纤维 12.4kg</span>
                         </div>
                     </div>
-                    
-                    <!-- Material Status -->
-                    <div class="glass-panel rounded-xl p-5">
-                        <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
-                            材料状态监控
-                        </h3>
-                        
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                                    <span class="text-xs text-slate-300">T700碳纤维机身</span>
-                                </div>
-                                <span class="text-xs text-cyan-400">正常</span>
-                            </div>
-                            
-                            <div class="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-                                    <span class="text-xs text-slate-300">自修复涂层</span>
-                                </div>
-                                <span class="text-xs text-orange-400">监控中</span>
-                            </div>
-                            
-                            <div class="text-xs text-slate-500 mt-2">应力分布</div>
-                            <div class="h-16 bg-slate-800/50 rounded-lg relative overflow-hidden">
-                                <canvas id="stressCanvas" class="w-full h-full"></canvas>
-                            </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600">比强度</span>
+                            <span class="text-slate-800 font-medium">碳纤维高5倍</span>
+                        </div>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill bg-slate-400" style="width: 20%;"></div>
+                        </div>
+                        <div class="comparison-bar mt-1">
+                            <div class="comparison-fill bg-sky-500" style="width: 100%;"></div>
                         </div>
                     </div>
-                    
-                    <!-- Active Sensors -->
-                    <div class="glass-panel rounded-xl p-5">
-                        <h3 class="text-sm font-bold text-slate-200 mb-3">传感器状态</h3>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="flex items-center gap-2 p-2 bg-slate-800/30 rounded">
-                                <span class="status-led active"></span>
-                                <span class="text-xs text-slate-400">LiDAR</span>
-                            </div>
-                            <div class="flex items-center gap-2 p-2 bg-slate-800/30 rounded">
-                                <span class="status-led active"></span>
-                                <span class="text-xs text-slate-400">IMU</span>
-                            </div>
-                            <div class="flex items-center gap-2 p-2 bg-slate-800/30 rounded">
-                                <span class="status-led active"></span>
-                                <span class="text-xs text-slate-400">Camera</span>
-                            </div>
-                            <div class="flex items-center gap-2 p-2 bg-slate-800/30 rounded">
-                                <span class="status-led warning"></span>
-                                <span class="text-xs text-slate-400">GPS</span>
-                            </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600">耐腐蚀性</span>
+                            <span class="text-slate-800 font-medium">碳纤维更优</span>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                            <div class="flex-1 h-2 bg-slate-300 rounded"></div>
+                            <div class="flex-1 h-2 bg-slate-300 rounded"></div>
+                            <div class="flex-1 h-2 bg-slate-200 rounded"></div>
+                            <span class="text-xs text-slate-500">铝</span>
+
+                            <div class="w-4"></div>
+
+                            <div class="flex-1 h-2 bg-sky-500 rounded"></div>
+                            <div class="flex-1 h-2 bg-sky-500 rounded"></div>
+                            <div class="flex-1 h-2 bg-sky-500 rounded"></div>
+                            <span class="text-xs text-sky-600 font-medium">碳</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bottom Section: Tabs Content -->
-            <div class="glass-panel rounded-2xl p-6">
-                
-                <!-- Tab: Simulation Info -->
-                <div id="content-simulation" class="tab-content">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="col-span-2">
-                            <h3 class="text-lg font-bold text-slate-200 mb-4">实时仿真数据</h3>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-slate-800/50 rounded-lg p-4">
-                                    <div class="text-xs text-slate-500 mb-1">已探索区域</div>
-                                    <div class="text-2xl font-bold text-blue-400" id="areaExplored">0 m²</div>
-                                    <div class="text-xs text-slate-600 mt-1">覆盖率: <span id="coverage">0%</span></div>
-                                </div>
-                                <div class="bg-slate-800/50 rounded-lg p-4">
-                                    <div class="text-xs text-slate-500 mb-1">检测到障碍</div>
-                                    <div class="text-2xl font-bold text-orange-400" id="obstaclesDetected">0</div>
-                                    <div class="text-xs text-slate-600 mt-1">成功规避: <span id="avoidedCount">0</span></div>
-                                </div>
-                                <div class="bg-slate-800/50 rounded-lg p-4">
-                                    <div class="text-xs text-slate-500 mb-1">平均速度</div>
-                                    <div class="text-2xl font-bold text-green-400" id="avgSpeed">0.0 m/s</div>
-                                    <div class="text-xs text-slate-600 mt-1">峰值: <span id="peakSpeed">0.0</span> m/s</div>
-                                </div>
-                                <div class="bg-slate-800/50 rounded-lg p-4">
-                                    <div class="text-xs text-slate-500 mb-1">能耗效率</div>
-                                    <div class="text-2xl font-bold text-purple-400" id="energyEff">0 Wh/km</div>
-                                    <div class="text-xs text-slate-600 mt-1">剩余续航: <span id="remainingTime">8.0</span>h</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-200 mb-4">算法性能</h3>
-                            <canvas id="performanceChart" height="200"></canvas>
-                        </div>
-                    </div>
+            <div class="card rounded-2xl p-6">
+                <h3 class="section-title text-xl font-bold text-slate-800 mb-4">自修复材料原理</h3>
+
+                <div class="relative h-48 bg-slate-50 rounded-lg overflow-hidden mb-4">
+                    <svg viewBox="0 0 300 150" class="w-full h-full">
+                        <!-- Microcapsules -->
+                        <circle cx="50" cy="75" r="20" fill="#fbbf24" opacity="0.8"/>
+                        <circle cx="50" cy="75" r="15" fill="#f59e0b"/>
+                        <text x="50" y="80" text-anchor="middle" fill="white" font-size="10">修复剂</text>
+
+                        <circle cx="120" cy="60" r="18" fill="#fbbf24" opacity="0.8"/>
+                        <circle cx="120" cy="60" r="13" fill="#f59e0b"/>
+
+                        <circle cx="100" cy="100" r="22" fill="#fbbf24" opacity="0.8"/>
+                        <circle cx="100" cy="100" r="17" fill="#f59e0b"/>
+
+                        <!-- Crack -->
+                        <path d="M 150 75 Q 180 70 200 75" stroke="#ef4444" stroke-width="3" fill="none" stroke-dasharray="5,5">
+                            <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite"/>
+                        </path>
+                        <text x="175" y="65" text-anchor="middle" fill="#ef4444" font-size="10">裂纹</text>
+
+                        <!-- Healing process -->
+                        <path d="M 200 75 L 240 75" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrow)"/>
+
+                        <defs>
+                            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                                <path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/>
+                            </marker>
+                        </defs>
+
+                        <!-- Healed -->
+                        <rect x="250" y="50" width="40" height="50" fill="#22c55e" opacity="0.3" rx="5"/>
+                        <text x="270" y="80" text-anchor="middle" fill="#15803d" font-size="10">修复完成</text>
+                    </svg>
                 </div>
 
-                <!-- Tab: Structure -->
-                <div id="content-structure" class="tab-content hidden">
-                    <h3 class="text-lg font-bold text-slate-200 mb-4">分层结构拆解</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                        <div class="relative h-96 bg-slate-800/30 rounded-xl p-4">
-                            <svg viewBox="0 0 400 400" class="w-full h-full">
-                                <g class="explode-layer" id="struct-layer4" transform="translate(0, 0)">
-                                    <rect x="100" y="40" width="200" height="80" rx="10" fill="url(#carbonPattern)" stroke="#475569" stroke-width="2"/>
-                                    <text x="200" y="85" text-anchor="middle" fill="white" font-size="14" font-weight="bold">自修复涂层 (0.2mm)</text>
-                                </g>
-                                <g class="explode-layer" id="struct-layer3" transform="translate(0, 0)">
-                                    <rect x="90" y="140" width="220" height="100" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2"/>
-                                    <pattern id="carbonPattern" patternUnits="userSpaceOnUse" width="8" height="8">
-                                        <rect width="8" height="8" fill="#0f172a"/>
-                                        <path d="M0,8 L8,0" stroke="#1e293b" stroke-width="1"/>
-                                    </pattern>
-                                    <text x="200" y="195" text-anchor="middle" fill="white" font-size="14" font-weight="bold">T700碳纤维 (3mm)</text>
-                                </g>
-                                <g class="explode-layer" id="struct-layer2" transform="translate(0, 0)">
-                                    <rect x="110" y="260" width="180" height="60" rx="4" fill="#64748b" stroke="#475569" stroke-width="2"/>
-                                    <text x="200" y="295" text-anchor="middle" fill="white" font-size="14" font-weight="bold">铝合金骨架 (2mm)</text>
-                                </g>
-                                <g class="explode-layer" id="struct-layer1" transform="translate(0, 0)">
-                                    <rect x="130" y="340" width="140" height="40" rx="4" fill="#0ea5e9" stroke="#0284c7" stroke-width="2"/>
-                                    <text x="200" y="365" text-anchor="middle" fill="white" font-size="12" font-weight="bold">电子系统</text>
-                                </g>
-                            </svg>
-                            <button onclick="toggleExplode()" class="absolute bottom-4 right-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition">
-                                拆解/合并
-                            </button>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="p-4 bg-slate-800/50 rounded-lg border-l-4 border-slate-600 cursor-pointer hover:bg-slate-800 transition" onclick="highlightStructure(4)">
-                                <h4 class="font-bold text-slate-200">微胶囊自修复涂层</h4>
-                                <p class="text-sm text-slate-400 mt-1">含修复剂的聚合物微胶囊，裂纹产生时自动释放修复剂，24小时内恢复85%强度。</p>
-                            </div>
-                            <div class="p-4 bg-slate-800/50 rounded-lg border-l-4 border-blue-500 cursor-pointer hover:bg-slate-800 transition" onclick="highlightStructure(3)">
-                                <h4 class="font-bold text-slate-200">T700碳纤维复合材料</h4>
-                                <p class="text-sm text-slate-400 mt-1">密度1.6g/cm³，强度4.9GPa，比强度是铝合金的5倍，比刚度是钢的3倍。</p>
-                            </div>
-                            <div class="p-4 bg-slate-800/50 rounded-lg border-l-4 border-gray-400 cursor-pointer hover:bg-slate-800 transition" onclick="highlightStructure(2)">
-                                <h4 class="font-bold text-slate-200">6061-T6铝合金骨架</h4>
-                                <p class="text-sm text-slate-400 mt-1">内部支撑结构，提供电机和传感器的刚性安装点。</p>
-                            </div>
-                            <div class="p-4 bg-slate-800/50 rounded-lg border-l-4 border-cyan-500 cursor-pointer hover:bg-slate-800 transition" onclick="highlightStructure(1)">
-                                <h4 class="font-bold text-slate-200">集成电子系统</h4>
-                                <p class="text-sm text-slate-400 mt-1">NVIDIA Jetson主控、IMU、5G模块、电池管理系统。</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <ol class="space-y-2 text-sm text-slate-600 list-decimal list-inside">
+                    <li>材料受损产生裂纹</li>
+                    <li>微胶囊破裂释放修复剂</li>
+                    <li>修复剂与催化剂接触聚合</li>
+                    <li>24小时内恢复原有强度85%</li>
+                </ol>
+            </div>
+        </section>
 
-                <!-- Tab: Materials -->
-                <div id="content-materials" class="tab-content hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-200 mb-4">材料性能对比</h3>
-                            <canvas id="materialChart" height="250"></canvas>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-200 mb-4">自修复过程模拟</h3>
-                            <div class="bg-slate-800/50 rounded-xl p-4 h-[250px] relative overflow-hidden" id="healingSim">
-                                <canvas id="healingCanvas" class="w-full h-full"></canvas>
-                                <div class="absolute bottom-4 left-4 flex gap-2">
-                                    <button onclick="startHealingSim()" class="px-3 py-1 bg-orange-600 hover:bg-orange-500 rounded text-xs">模拟损伤</button>
-                                    <button onclick="resetHealing()" class="px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs">重置</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Technical Specs -->
+        <section id="specs" class="card rounded-2xl p-8">
+            <h2 class="section-title text-2xl font-bold text-slate-800 mb-6">技术参数一览</h2>
 
-                <!-- Tab: Data -->
-                <div id="content-data" class="tab-content hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="md:col-span-2">
-                            <h3 class="text-lg font-bold text-slate-200 mb-4">应力-应变实时曲线</h3>
-                            <canvas id="stressChart" height="200"></canvas>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-200 mb-4">技术参数</h3>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between p-2 bg-slate-800/50 rounded">
-                                    <span class="text-slate-400">整机重量</span>
-                                    <span class="text-slate-200 font-mono">12.4 kg</span>
-                                </div>
-                                <div class="flex justify-between p-2 bg-slate-800/50 rounded">
-                                    <span class="text-slate-400">最大载重</span>
-                                    <span class="text-slate-200 font-mono">5.2 kg</span>
-                                </div>
-                                <div class="flex justify-between p-2 bg-slate-800/50 rounded">
-                                    <span class="text-slate-400">续航时间</span>
-                                    <span class="text-slate-200 font-mono">8.0 h</span>
-                                </div>
-                                <div class="flex justify-between p-2 bg-slate-800/50 rounded">
-                                    <span class="text-slate-400">防护等级</span>
-                                    <span class="text-slate-200 font-mono">IP67</span>
-                                </div>
-                            </div>
-                        </div>
+            <div class="spec-grid mb-8">
+                <div class="spec-item">
+                    <div class="spec-value">12.4</div>
+                    <div class="spec-label">整机重量 (kg)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">5.2</div>
+                    <div class="spec-label">最大载重 (kg)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">8</div>
+                    <div class="spec-label">续航时间 (h)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">3.5</div>
+                    <div class="spec-label">最高速度 (m/s)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">30</div>
+                    <div class="spec-label">越障高度 (cm)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">100</div>
+                    <div class="spec-label">遥控距离 (m)</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">IP67</div>
+                    <div class="spec-label">防护等级</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-value">-20~60</div>
+                    <div class="spec-label">工作温度 (°C)</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-6">
+                <h4 class="font-bold text-slate-800 mb-4">核心组件配置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <span class="text-slate-500">主控制器：</span>
+                        <span class="text-slate-800 font-medium">NVIDIA Jetson Xavier NX</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">激光雷达：</span>
+                        <span class="text-slate-800 font-medium">Velodyne Puck LITE</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">相机系统：</span>
+                        <span class="text-slate-800 font-medium">Intel RealSense D435i</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">通信模块：</span>
+                        <span class="text-slate-800 font-medium">5G + WiFi 6</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">电池：</span>
+                        <span class="text-slate-800 font-medium">LiFePO4 24V 20Ah</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">电机：</span>
+                        <span class="text-slate-800 font-medium">无刷直流 150W×4</span>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </section>
+
+        <!-- Features Grid -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card rounded-xl p-6 flex gap-4">
+                <div class="feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1">轻量化设计</h4>
+                    <p class="text-sm text-slate-600">碳纤维机身仅12.4kg，单人可携带，快速部署灾区</p>
+                </div>
+            </div>
+
+            <div class="card rounded-xl p-6 flex gap-4">
+                <div class="feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1">自修复保护</h4>
+                    <p class="text-sm text-slate-600">微胶囊涂层自动修复表面划痕，延长使用寿命</p>
+                </div>
+            </div>
+
+            <div class="card rounded-xl p-6 flex gap-4">
+                <div class="feature-icon">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1">AI自主导航</h4>
+                    <p class="text-sm text-slate-600">LiDAR+视觉融合SLAM，复杂环境自主路径规划</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+            <p>智能复合材料救援机器人仿真系统 | 材料科学与工程专业作品</p>
+            <p class="mt-2">本作品使用AI辅助开发，核心创意与材料专业内容均为原创</p>
+        </div>
+    </footer>
 
     <script>
-        // Global Variables
-        let scene, camera, renderer, controls;
-        let robot, terrain, obstacles = [], pathLine;
-        let isSimulating = false;
-        let isHeatmap = false;
-        let robotPos = { x: 0, z: 0 };
-        let targetPos = { x: 20, z: 20 };
-        let path = [];
-        let pathIndex = 0;
-        let simSpeed = 1.5;
-        let startTime = null;
-        let exploredArea = 0;
-        let avoidedObstacles = 0;
-        let peakSpeed = 0;
-        
-        // Configuration
-        const config = {
-            terrainComplexity: 3,
-            obstacleDensity: 35,
-            lighting: 2,
-            showHeatmap: false
-        };
+        // Three.js 3D Model Setup
+        let scene, camera, renderer, robot, controls;
+        let isRotating = false;
+        let rotationSpeed = 0.005;
 
-        // Initialize
-        window.onload = function() {
-            initThreeJS();
-            initCharts();
-            initMinimap();
-            initPathCanvas();
-            initStressCanvas();
-            updateDifficulty();
-            
-            // Hide loading screen
-            setTimeout(() => {
-                document.getElementById('loading-screen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('loading-screen').style.display = 'none';
-                }, 500);
-            }, 1500);
-        };
-
-        // Three.js Initialization
         function initThreeJS() {
             const container = document.getElementById('threejs-canvas');
-            
+
             // Scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0f172a);
-            scene.fog = new THREE.Fog(0x0f172a, 10, 50);
-            
+            scene.background = new THREE.Color(0xf1f5f9);
+
             // Camera
-            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
-            camera.position.set(15, 12, 15);
-            
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(5, 3, 5);
+
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             container.appendChild(renderer.domElement);
-            
+
             // Lights
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
-            
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(10, 20, 10);
-            dirLight.castShadow = true;
-            dirLight.shadow.camera.near = 0.1;
-            dirLight.shadow.camera.far = 50;
-            dirLight.shadow.camera.left = -25;
-            dirLight.shadow.camera.right = 25;
-            dirLight.shadow.camera.top = 25;
-            dirLight.shadow.camera.bottom = -25;
-            scene.add(dirLight);
-            
-            // Blue accent light
-            const spotLight = new THREE.SpotLight(0x3b82f6, 0.5);
-            spotLight.position.set(-10, 10, -10);
-            spotLight.lookAt(0, 0, 0);
-            scene.add(spotLight);
-            
-            // Create environment
-            createTerrain();
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            const fillLight = new THREE.DirectionalLight(0x0ea5e9, 0.3);
+            fillLight.position.set(-5, 0, -5);
+            scene.add(fillLight);
+
+            // Create Robot Model
             createRobot();
-            generateObstacles();
-            createPath();
-            
+
             // Controls
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxPolarAngle = Math.PI / 2.2;
-            controls.minDistance = 5;
-            controls.maxDistance = 40;
-            
+            controls.minDistance = 3;
+            controls.maxDistance = 10;
+
             // Animation loop
             animate();
-            
-            // Resize handler
-            window.addEventListener('resize', onWindowResize);
-        }
 
-        function createTerrain() {
-            // Create grid-based terrain with height variation
-            const geometry = new THREE.PlaneGeometry(50, 50, 50, 50);
-            const positions = geometry.attributes.position.array;
-            
-            // Add height variation based on terrain complexity
-            for (let i = 0; i < positions.length; i += 3) {
-                const x = positions[i];
-                const y = positions[i + 1];
-                const height = Math.sin(x * 0.1) * Math.cos(y * 0.1) * (config.terrainComplexity * 0.3);
-                positions[i + 2] = height;
-            }
-            
-            geometry.computeVertexNormals();
-            
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x1e293b,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.3
-            });
-            
-            terrain = new THREE.Mesh(geometry, material);
-            terrain.rotation.x = -Math.PI / 2;
-            terrain.receiveShadow = true;
-            scene.add(terrain);
-            
-            // Add solid ground plane
-            const groundGeo = new THREE.PlaneGeometry(50, 50);
-            const groundMat = new THREE.MeshStandardMaterial({
-                color: 0x0f172a,
-                roughness: 0.8
-            });
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            ground.position.y = -0.1;
-            ground.receiveShadow = true;
-            scene.add(ground);
+            // Handle resize
+            window.addEventListener('resize', onWindowResize);
         }
 
         function createRobot() {
             robot = new THREE.Group();
-            
-            // Materials with heatmap capability
+
+            // Materials
             const carbonMaterial = new THREE.MeshStandardMaterial({
                 color: 0x1e293b,
                 roughness: 0.3,
                 metalness: 0.7,
-                emissive: 0x000000
             });
-            
+
             const metalMaterial = new THREE.MeshStandardMaterial({
                 color: 0x64748b,
                 roughness: 0.4,
-                metalness: 0.8
+                metalness: 0.8,
             });
-            
+
             const sensorMaterial = new THREE.MeshStandardMaterial({
-                color: 0x3b82f6,
-                emissive: 0x3b82f6,
-                emissiveIntensity: 0.5
+                color: 0x0ea5e9,
+                emissive: 0x0ea5e9,
+                emissiveIntensity: 0.5,
+                roughness: 0.2,
             });
-            
-            // Main body
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.8), carbonMaterial);
+
+            // Main Body
+            const bodyGeometry = new THREE.BoxGeometry(1.5, 0.6, 1);
+            const body = new THREE.Mesh(bodyGeometry, carbonMaterial);
             body.position.y = 0.5;
             body.castShadow = true;
-            body.name = 'carbonBody';
             robot.add(body);
-            
-            // LiDAR
-            const lidar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.15, 32), sensorMaterial);
-            lidar.position.y = 0.85;
+
+            // LiDAR Dome
+            const lidarGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 32);
+            const lidar = new THREE.Mesh(lidarGeometry, sensorMaterial);
+            lidar.position.y = 0.9;
             robot.add(lidar);
-            
-            // Tracks
-            const trackGeo = new THREE.BoxGeometry(0.3, 0.4, 1);
-            const leftTrack = new THREE.Mesh(trackGeo, metalMaterial);
-            leftTrack.position.set(-0.8, 0.3, 0);
+
+            // Camera/Visual Sensor
+            const cameraGeometry = new THREE.BoxGeometry(0.3, 0.15, 0.1);
+            const camera = new THREE.Mesh(cameraGeometry, new THREE.MeshStandardMaterial({ color: 0x111111 }));
+            camera.position.set(0, 0.6, 0.51);
+            robot.add(camera);
+
+            // Left Track
+            const trackGeometry = new THREE.BoxGeometry(0.4, 0.5, 1.2);
+            const leftTrack = new THREE.Mesh(trackGeometry, metalMaterial);
+            leftTrack.position.set(-0.9, 0.3, 0);
             leftTrack.castShadow = true;
             robot.add(leftTrack);
-            
-            const rightTrack = new THREE.Mesh(trackGeo, metalMaterial);
-            rightTrack.position.set(0.8, 0.3, 0);
+
+            // Right Track
+            const rightTrack = new THREE.Mesh(trackGeometry, metalMaterial);
+            rightTrack.position.set(0.9, 0.3, 0);
             rightTrack.castShadow = true;
             robot.add(rightTrack);
-            
-            // Wheels
+
+            // Track wheels detail
             for (let i = 0; i < 3; i++) {
-                const wheelGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.35, 16);
+                const wheelGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.45, 16);
                 const wheelMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
-                
-                [-0.8, 0.8].forEach(x => {
-                    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-                    wheel.rotation.z = Math.PI / 2;
-                    wheel.position.set(x, 0.12, -0.3 + i * 0.3);
-                    robot.add(wheel);
-                });
+
+                const leftWheel = new THREE.Mesh(wheelGeo, wheelMat);
+                leftWheel.rotation.z = Math.PI / 2;
+                leftWheel.position.set(-0.9, 0.15, -0.4 + i * 0.4);
+                robot.add(leftWheel);
+
+                const rightWheel = new THREE.Mesh(wheelGeo, wheelMat);
+                rightWheel.rotation.z = Math.PI / 2;
+                rightWheel.position.set(0.9, 0.15, -0.4 + i * 0.4);
+                robot.add(rightWheel);
             }
-            
-            // Mechanical arm
-            const armBase = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.25), metalMaterial);
-            armBase.position.set(0.5, 0.6, 0);
+
+            // Mechanical Arm (simplified)
+            const armBaseGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.3);
+            const armBase = new THREE.Mesh(armBaseGeometry, metalMaterial);
+            armBase.position.set(0.6, 0.6, 0);
             robot.add(armBase);
-            
-            const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.08), metalMaterial);
-            arm1.position.set(0.6, 0.9, 0);
-            arm1.rotation.z = -0.4;
-            robot.add(arm1);
-            
-            const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.35, 0.06), metalMaterial);
-            arm2.position.set(0.8, 1.1, 0);
-            arm2.rotation.z = 0.6;
-            robot.add(arm2);
-            
+
+            const armSegment1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.1), metalMaterial);
+            armSegment1.position.set(0.7, 0.9, 0);
+            armSegment1.rotation.z = -0.3;
+            robot.add(armSegment1);
+
+            const armSegment2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.08), metalMaterial);
+            armSegment2.position.set(0.9, 1.1, 0);
+            armSegment2.rotation.z = 0.5;
+            robot.add(armSegment2);
+
             // Gripper
-            const gripper = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.04), new THREE.MeshStandardMaterial({ color: 0xf59e0b }));
-            gripper.position.set(0.95, 1.15, 0);
+            const gripperGeometry = new THREE.BoxGeometry(0.15, 0.1, 0.05);
+            const gripper = new THREE.Mesh(gripperGeometry, new THREE.MeshStandardMaterial({ color: 0xf59e0b }));
+            gripper.position.set(1.05, 1.15, 0);
             robot.add(gripper);
-            
-            // Status LED
-            const led = new THREE.Mesh(new THREE.SphereGeometry(0.03), new THREE.MeshBasicMaterial({ color: 0x22c55e }));
-            led.position.set(0.5, 0.65, 0.3);
+
+            // Antenna
+            const antennaGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.6);
+            const antenna = new THREE.Mesh(antennaGeo, metalMaterial);
+            antenna.position.set(-0.6, 0.9, -0.3);
+            robot.add(antenna);
+
+            // Status LEDs
+            const ledGeo = new THREE.SphereGeometry(0.03);
+            const ledMat = new THREE.MeshStandardMaterial({ 
+                color: 0x22c55e, 
+                emissive: 0x22c55e,
+                emissiveIntensity: 0.8 
+            });
+            const led = new THREE.Mesh(ledGeo, ledMat);
+            led.position.set(0.6, 0.65, 0.4);
             robot.add(led);
-            
-            // Sensor cone (visual only)
-            const coneGeo = new THREE.ConeGeometry(2, 4, 32, 1, true);
-            const coneMat = new THREE.MeshBasicMaterial({
-                color: 0x3b82f6,
-                transparent: true,
-                opacity: 0.1,
-                side: THREE.DoubleSide
-            });
-            const sensorCone = new THREE.Mesh(coneGeo, coneMat);
-            sensorCone.rotation.x = -Math.PI / 2;
-            sensorCone.position.set(0, 0.5, 2);
-            sensorCone.name = 'sensorCone';
-            robot.add(sensorCone);
-            
+
+            // Ground plane (shadow catcher)
+            const planeGeometry = new THREE.PlaneGeometry(10, 10);
+            const planeMaterial = new THREE.ShadowMaterial({ opacity: 0.1 });
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.y = 0;
+            plane.receiveShadow = true;
+            scene.add(plane);
+
             scene.add(robot);
-        }
-
-        function generateObstacles() {
-            // Clear existing obstacles
-            obstacles.forEach(obs => scene.remove(obs));
-            obstacles = [];
-            
-            const count = Math.floor(config.obstacleDensity / 100 * 30);
-            const geometries = [
-                new THREE.BoxGeometry(1, 1, 1),
-                new THREE.BoxGeometry(1.5, 0.8, 1.5),
-                new THREE.CylinderGeometry(0.5, 0.5, 1, 16)
-            ];
-            
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x475569,
-                roughness: 0.9
-            });
-            
-            for (let i = 0; i < count; i++) {
-                const geo = geometries[Math.floor(Math.random() * geometries.length)];
-                const mesh = new THREE.Mesh(geo, material);
-                
-                mesh.position.x = (Math.random() - 0.5) * 40;
-                mesh.position.z = (Math.random() - 0.5) * 40;
-                mesh.position.y = 0.5;
-                
-                mesh.rotation.y = Math.random() * Math.PI;
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                
-                // Ensure not too close to start or target
-                const distToStart = Math.sqrt(mesh.position.x ** 2 + mesh.position.z ** 2);
-                const distToTarget = Math.sqrt((mesh.position.x - targetPos.x) ** 2 + (mesh.position.z - targetPos.z) ** 2);
-                
-                if (distToStart > 5 && distToTarget > 5) {
-                    scene.add(mesh);
-                    obstacles.push(mesh);
-                }
-            }
-        }
-
-        function createPath() {
-            // Generate path using A* algorithm
-            path = [];
-            const steps = 50;
-            
-            for (let i = 0; i <= steps; i++) {
-                const t = i / steps;
-                let x = robotPos.x + (targetPos.x - robotPos.x) * t;
-                let z = robotPos.z + (targetPos.z - robotPos.z) * t;
-                
-                // Add some curvature based on terrain complexity
-                const offset = Math.sin(t * Math.PI * config.terrainComplexity) * 3;
-                x += offset;
-                
-                // Avoid obstacles
-                obstacles.forEach(obs => {
-                    const dx = x - obs.position.x;
-                    const dz = z - obs.position.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    if (dist < 3) {
-                        const angle = Math.atan2(dz, dx);
-                        x += Math.cos(angle) * (3 - dist);
-                        z += Math.sin(angle) * (3 - dist);
-                        avoidedObstacles++;
-                    }
-                });
-                
-                path.push({ x, z });
-            }
-            
-            // Create visual path
-            if (pathLine) scene.remove(pathLine);
-            
-            const points = path.map(p => new THREE.Vector3(p.x, 0.2, p.z));
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({
-                color: 0x3b82f6,
-                linewidth: 3
-            });
-            
-            pathLine = new THREE.Line(geometry, material);
-            scene.add(pathLine);
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Update simulation
-            if (isSimulating && pathIndex < path.length - 1) {
-                const target = path[pathIndex + 1];
-                const dx = target.x - robotPos.x;
-                const dz = target.z - robotPos.z;
-                const dist = Math.sqrt(dx * dx + dz * dz);
-                
-                if (dist < 0.5) {
-                    pathIndex++;
-                } else {
-                    const speed = simSpeed * 0.05;
-                    robotPos.x += (dx / dist) * speed;
-                    robotPos.z += (dz / dist) * speed;
-                    
-                    // Update robot position
-                    robot.position.x = robotPos.x;
-                    robot.position.z = robotPos.z;
-                    
-                    // Rotate robot to face movement direction
-                    robot.rotation.y = Math.atan2(dx, dz);
-                    
-                    // Update telemetry
-                    updateTelemetry();
-                    
-                    // Update explored area
-                    exploredArea += speed;
-                    document.getElementById('areaExplored').textContent = Math.floor(exploredArea) + ' m²';
-                    document.getElementById('coverage').textContent = Math.min(Math.floor(exploredArea / 10), 100) + '%';
-                    
-                    // Update speed stats
-                    const currentSpeed = speed * 20; // Scale for display
-                    document.getElementById('robotSpeed').textContent = currentSpeed.toFixed(1) + ' m/s';
-                    if (currentSpeed > peakSpeed) {
-                        peakSpeed = currentSpeed;
-                        document.getElementById('peakSpeed').textContent = peakSpeed.toFixed(1);
-                    }
-                    document.getElementById('avgSpeed').textContent = (peakSpeed * 0.7).toFixed(1) + ' m/s';
-                    
-                    // Update minimap
-                    updateMinimap();
-                }
-                
-                // Update simulation time
-                if (!startTime) startTime = Date.now();
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                const hrs = Math.floor(elapsed / 3600).toString().padStart(2, '0');
-                const mins = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
-                const secs = (elapsed % 60).toString().padStart(2, '0');
-                document.getElementById('simTime').textContent = `${hrs}:${mins}:${secs}`;
+
+            if (isRotating && robot) {
+                robot.rotation.y += rotationSpeed;
             }
-            
-            // Rotate sensor cone
-            const cone = robot.getObjectByName('sensorCone');
-            if (cone) {
-                cone.rotation.z += 0.02;
-            }
-            
-            // Update path canvas
-            updatePathCanvas();
-            
-            // Update stress visualization
-            updateStressVisualization();
-            
+
             controls.update();
             renderer.render(scene, camera);
         }
 
-        function updateTelemetry() {
-            document.getElementById('robotPos').textContent = 
-                `X:${robotPos.x.toFixed(1)} Y:0.5 Z:${robotPos.z.toFixed(1)}`;
-            document.getElementById('robotHeading').textContent = 
-                (robot.rotation.y * 180 / Math.PI).toFixed(0) + '°';
+        function onWindowResize() {
+            const container = document.getElementById('threejs-canvas');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
         }
 
-        // Control Functions
-        function toggleSimulation() {
-            isSimulating = !isSimulating;
-            const btn = document.getElementById('simBtn');
-            
-            if (isSimulating) {
-                btn.innerHTML = '<svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
-                btn.classList.remove('bg-green-600');
-                btn.classList.add('bg-amber-600');
-                document.getElementById('systemStatus').textContent = '仿真运行中';
-            } else {
-                btn.innerHTML = '<svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                btn.classList.remove('bg-amber-600');
-                btn.classList.add('bg-green-600');
-                document.getElementById('systemStatus').textContent = '已暂停';
+        function resetView() {
+            camera.position.set(5, 3, 5);
+            controls.reset();
+            if (robot) {
+                robot.rotation.y = 0;
             }
         }
 
-        function resetSimulation() {
-            isSimulating = false;
-            pathIndex = 0;
-            robotPos = { x: 0, z: 0 };
-            robot.position.set(0, 0, 0);
-            exploredArea = 0;
-            avoidedObstacles = 0;
-            peakSpeed = 0;
-            startTime = null;
-            
-            document.getElementById('simBtn').innerHTML = '<svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-            document.getElementById('simBtn').classList.remove('bg-amber-600');
-            document.getElementById('simBtn').classList.add('bg-green-600');
-            document.getElementById('systemStatus').textContent = '已重置';
-            document.getElementById('simTime').textContent = '00:00:00';
-            
-            createPath();
-            updateMinimap();
+        function toggleRotate() {
+            isRotating = !isRotating;
         }
 
-        function setCameraView(view) {
-            switch(view) {
-                case 'top':
-                    camera.position.set(0, 25, 0);
-                    camera.lookAt(0, 0, 0);
-                    break;
-                case 'side':
-                    camera.position.set(25, 5, 0);
-                    camera.lookAt(0, 0, 0);
-                    break;
-                case 'follow':
-                    // Will be handled in animate loop
-                    break;
+        // Detail Panel Functions
+        const details = {
+            lidar: {
+                title: 'LiDAR激光雷达系统',
+                content: `
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-slate-50 p-3 rounded">
+                            <div class="text-sm text-slate-500">探测距离</div>
+                            <div class="text-lg font-bold text-slate-800">100m</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded">
+                            <div class="text-sm text-slate-500">精度</div>
+                            <div class="text-lg font-bold text-slate-800">±2cm</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded">
+                            <div class="text-sm text-slate-500">扫描频率</div>
+                            <div class="text-lg font-bold text-slate-800">10Hz</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded">
+                            <div class="text-sm text-slate-500">视场角</div>
+                            <div class="text-lg font-bold text-slate-800">360°</div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-slate-600">采用Velodyne Puck LITE激光雷达，配合SLAM算法实现实时三维建图，可在烟雾、低光照环境下正常工作。</p>
+                `
+            },
+            body: {
+                title: 'T700碳纤维机身',
+                content: `
+                    <div class="flex gap-4 mt-4">
+                        <div class="flex-1 bg-slate-50 p-4 rounded text-center">
+                            <div class="text-2xl font-bold text-sky-600">1.6</div>
+                            <div class="text-xs text-slate-500">g/cm³ 密度</div>
+                        </div>
+                        <div class="flex-1 bg-slate-50 p-4 rounded text-center">
+                            <div class="text-2xl font-bold text-sky-600">4.9</div>
+                            <div class="text-xs text-slate-500">GPa 强度</div>
+                        </div>
+                        <div class="flex-1 bg-slate-50 p-4 rounded text-center">
+                            <div class="text-2xl font-bold text-sky-600">230</div>
+                            <div class="text-xs text-slate-500">GPa 模量</div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-slate-600">采用航空级T700碳纤维预浸料，热压罐成型工艺。比强度是铝合金的5倍，比刚度是钢的3倍，同时具备优异的耐腐蚀性和抗疲劳性能。</p>
+                `
+            },
+            track: {
+                title: '自适应履带底盘',
+                content: `
+                    <ul class="mt-4 space-y-2 text-slate-600">
+                        <li class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            可跨越30cm垂直障碍
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            爬坡角度最大45°
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            独立悬挂减震系统
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            4×150W无刷直流电机驱动
+                        </li>
+                    </ul>
+                `
+            },
+            arm: {
+                title: '6自由度机械臂',
+                content: `
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">臂展</span>
+                            <span class="font-medium">0.8m</span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">最大负载</span>
+                            <span class="font-medium">5kg</span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">重复定位精度</span>
+                            <span class="font-medium">±1mm</span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">末端执行器</span>
+                            <span class="font-medium">可更换夹爪/ cutter</span>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-slate-600">用于清除小型障碍物、开启门窗、抓取物资。配备力矩传感器，防止对被困者造成二次伤害。</p>
+                `
             }
+        };
+
+        function showDetail(type) {
+            const panel = document.getElementById('detailPanel');
+            const title = document.getElementById('detailTitle');
+            const content = document.getElementById('detailContent');
+
+            title.textContent = details[type].title;
+            content.innerHTML = details[type].content;
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        function toggleHeatmap() {
-            isHeatmap = !isHeatmap;
-            const body = robot.getObjectByName('carbonBody');
-            
-            if (isHeatmap) {
-                body.material.emissive = new THREE.Color(0xff4400);
-                body.material.emissiveIntensity = 0.3;
-            } else {
-                body.material.emissive = new THREE.Color(0x000000);
-                body.material.emissiveIntensity = 0;
-            }
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.add('hidden');
         }
 
-        // Environment Controls
-        function updateTerrain(value) {
-            config.terrainComplexity = parseInt(value);
-            const labels = ['平坦', '简单', '中等', '复杂', '极复杂'];
-            document.getElementById('terrainValue').textContent = labels[value - 1];
-            createPath();
-            updateDifficulty();
-        }
-
-        function updateObstacles(value) {
-            config.obstacleDensity = parseInt(value);
-            document.getElementById('obstacleValue').textContent = value + '%';
-            document.getElementById('obstaclesDetected').textContent = Math.floor(value / 100 * 30);
-            generateObstacles();
-            createPath();
-            updateDifficulty();
-        }
-
-        function updateLighting(value) {
-            config.lighting = parseInt(value);
-            const labels = ['明亮', '正常', '昏暗'];
-            document.getElementById('lightValue').textContent = labels[value - 1];
-        }
-
-        function updateSpeed(value) {
-            simSpeed = parseFloat(value);
-            document.getElementById('speedValue').textContent = value + ' m/s';
-        }
-
-        function updateDifficulty() {
-            const score = (config.terrainComplexity * 15) + (config.obstacleDensity * 0.6);
-            const bar = document.getElementById('difficultyBar');
-            const text = document.getElementById('difficultyText');
-            
-            bar.style.width = Math.min(score, 100) + '%';
-            
-            if (score < 30) {
-                text.textContent = 'C级';
-                text.className = 'text-xs font-bold text-green-400';
-            } else if (score < 60) {
-                text.textContent = 'B级';
-                text.className = 'text-xs font-bold text-yellow-400';
-            } else {
-                text.textContent = 'A级';
-                text.className = 'text-xs font-bold text-red-400';
-            }
-        }
-
-        // Tab Switching
-        function switchTab(tabName) {
-            // Update buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tab-' + tabName).classList.add('active');
-            
-            // Update content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-            document.getElementById('content-' + tabName).classList.remove('hidden');
-            
-            // Refresh charts if needed
-            if (tabName === 'data') {
-                updateStressChart();
-            }
-        }
-
-        // Structure Explode
+        // Exploded View Animation
         let isExploded = false;
-        function toggleExplode() {
+        function startExplode() {
             isExploded = !isExploded;
-            const layers = ['layer1', 'layer2', 'layer3', 'layer4'];
-            const offsets = isExploded ? [60, 20, -20, -60] : [0, 0, 0, 0];
-            
-            layers.forEach((id, index) => {
-                const layer = document.getElementById('struct-' + id);
-                if (layer) {
-                    layer.style.transform = `translateY(${offsets[index]}px)`;
-                }
-            });
+            const layers = document.querySelectorAll('.layer');
+
+            if (isExploded) {
+                document.getElementById('layer4').style.transform = 'translateX(-50%) translateY(-60px)';
+                document.getElementById('layer3').style.transform = 'translateX(-50%) translateY(-20px)';
+                document.getElementById('layer2').style.transform = 'translateX(-50%) translateY(20px)';
+                document.getElementById('layer1').style.transform = 'translateX(-50%) translateY(60px)';
+            } else {
+                layers.forEach(layer => {
+                    layer.style.transform = 'translateX(-50%)';
+                });
+            }
         }
 
-        function highlightStructure(layer) {
-            // Reset all
-            document.querySelectorAll('.explode-layer').forEach(l => l.style.opacity = '0.3');
-            document.getElementById('struct-layer' + layer).style.opacity = '1';
-            
+        function highlightLayer(num) {
+            // Reset all layers
+            document.querySelectorAll('.layer').forEach(l => {
+                l.style.opacity = '0.3';
+            });
+            document.querySelectorAll('.material-layer').forEach(l => {
+                l.style.opacity = '0.5';
+            });
+
+            // Highlight selected
+            const layer = document.getElementById('layer' + num);
+            const info = document.querySelectorAll('.material-layer')[4 - num];
+            if (layer) layer.style.opacity = '1';
+            if (info) {
+                info.style.opacity = '1';
+                info.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Reset after 2 seconds
             setTimeout(() => {
-                document.querySelectorAll('.explode-layer').forEach(l => l.style.opacity = '1');
+                document.querySelectorAll('.layer').forEach(l => {
+                    l.style.opacity = '1';
+                });
+                document.querySelectorAll('.material-layer').forEach(l => {
+                    l.style.opacity = '1';
+                });
             }, 2000);
         }
 
-        // Charts
-        let performanceChart, materialChart, stressChart;
-
-        function initCharts() {
-            // Performance Chart
-            const perfCtx = document.getElementById('performanceChart').getContext('2d');
-            performanceChart = new Chart(perfCtx, {
-                type: 'radar',
-                data: {
-                    labels: ['路径规划', '避障能力', '能耗效率', '稳定性', '响应速度'],
-                    datasets: [{
-                        label: '当前配置',
-                        data: [85, 90, 75, 88, 82],
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        borderColor: '#3b82f6',
-                        pointBackgroundColor: '#3b82f6'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(148, 163, 184, 0.2)' },
-                            grid: { color: 'rgba(148, 163, 184, 0.2)' },
-                            pointLabels: { color: '#94a3b8', font: { size: 10 } },
-                            ticks: { display: false }
-                        }
-                    },
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
-                    }
-                }
-            });
-            
-            // Material Chart
-            const matCtx = document.getElementById('materialChart').getContext('2d');
-            materialChart = new Chart(matCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['密度', '强度', '刚度', '耐腐蚀', '疲劳寿命'],
-                    datasets: [{
-                        label: '碳纤维',
-                        data: [95, 98, 92, 88, 85],
-                        backgroundColor: 'rgba(59, 130, 246, 0.6)'
-                    }, {
-                        label: '铝合金',
-                        data: [60, 65, 70, 55, 60],
-                        backgroundColor: 'rgba(148, 163, 184, 0.6)'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            ticks: { color: '#94a3b8' },
-                            grid: { color: 'rgba(148, 163, 184, 0.2)' }
-                        },
-                        x: {
-                            ticks: { color: '#94a3b8' },
-                            grid: { display: false }
-                        }
-                    },
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
-                    }
-                }
-            });
+        function startSimulation() {
+            alert('仿真功能演示：\n\n在完整版本中，这里将展示：\n1. 废墟环境路径规划\n2. 实时避障决策\n3. 材料应力分析\n4. 自修复过程模拟\n\n当前版本重点展示机器人结构与材料特性。');
         }
 
-        function updateStressChart() {
-            if (!stressChart) {
-                const ctx = document.getElementById('stressChart').getContext('2d');
-                stressChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: Array(20).fill(''),
-                        datasets: [{
-                            label: '应力 (MPa)',
-                            data: Array(20).fill(0).map(() => 200 + Math.random() * 100),
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                min: 0,
-                                max: 500,
-                                ticks: { color: '#94a3b8' },
-                                grid: { color: 'rgba(148, 163, 184, 0.2)' }
-                            },
-                            x: { display: false }
-                        },
-                        plugins: {
-                            legend: { labels: { color: '#e2e8f0' } }
-                        },
-                        animation: { duration: 0 }
-                    }
-                });
-            } else {
-                // Update data
-                const data = stressChart.data.datasets[0].data;
-                data.shift();
-                data.push(200 + Math.random() * 150 + (isSimulating ? 50 :
+        // Initialize
+        window.onload = function() {
+            initThreeJS();
+        };
+    </script>
+</body>
+</html>
