@@ -226,7 +226,436 @@
             </div>
         </div>
     </header>
+// ==================== 仿真核心代码 ====================
 
+// Canvas Setup
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+let animationId;
+let isRunning = false;
+let robotPos = { x: 50, y: 250 };
+let targetPos = { x: 750, y: 250 };
+let obstacles = [];
+let path = [];
+let particles = [];
+
+// Configuration
+let config = {
+    terrain: 3,
+    obstacleDensity: 30,
+    lighting: 2,
+    speed: 2
+};
+
+// Resize canvas
+function resizeCanvas() {
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    targetPos = { x: canvas.width - 50, y: canvas.height / 2 };
+    generateObstacles();
+    generatePath();
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Generate random obstacles
+function generateObstacles() {
+    obstacles = [];
+    const count = Math.floor((config.obstacleDensity / 100) * 20);
+    for (let i = 0; i < count; i++) {
+        obstacles.push({
+            x: 100 + Math.random() * (canvas.width - 200),
+            y: 50 + Math.random() * (canvas.height - 100),
+            width: 30 + Math.random() * 50,
+            height: 30 + Math.random() * 50,
+            rotation: Math.random() * Math.PI / 4
+        });
+    }
+}
+
+// Generate path using simple A* approximation
+function generatePath() {
+    path = [];
+    let current = { ...robotPos };
+    path.push({ ...current });
+
+    const steps = 20;
+    for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const x = robotPos.x + (targetPos.x - robotPos.x) * t;
+        const y = robotPos.y + (targetPos.y - robotPos.y) * t + Math.sin(t * Math.PI * 2) * (50 * (config.terrain / 3));
+
+        // Avoid obstacles
+        let adjustedY = y;
+        obstacles.forEach(obs => {
+            const dx = x - obs.x;
+            const dy = y - obs.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 80) {
+                adjustedY += (dy > 0 ? 1 : -1) * (80 - dist);
+            }
+        });
+
+        path.push({ x, y: adjustedY });
+    }
+}
+
+// Draw functions
+function drawGrid() {
+    ctx.strokeStyle = 'rgba(51, 65, 85, 0.3)';
+    ctx.lineWidth = 1;
+    const gridSize = 40;
+
+    for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+}
+
+function drawObstacles() {
+    ctx.fillStyle = 'rgba(71, 85, 105, 0.8)';
+    ctx.strokeStyle = 'rgba(100, 116, 139, 0.9)';
+    ctx.lineWidth = 2;
+
+    obstacles.forEach(obs => {
+        ctx.save();
+        ctx.translate(obs.x, obs.y);
+        ctx.rotate(obs.rotation);
+
+        // Draw rubble-like shape
+        ctx.beginPath();
+        ctx.rect(-obs.width/2, -obs.height/2, obs.width, obs.height);
+        ctx.fill();
+        ctx.stroke();
+
+        // Add texture
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.beginPath();
+        ctx.arc(-obs.width/4, -obs.height/4, 5, 0, Math.PI * 2);
+        ctx.arc(obs.width/4, obs.height/4, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    });
+}
+
+function drawPath() {
+    if (path.length < 2) return;
+
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 5]);
+    ctx.lineDashOffset = -Date.now() / 50;
+
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) {
+        ctx.lineTo(path[i].x, path[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+function drawRobot() {
+    const x = robotPos.x;
+    const y = robotPos.y;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 20, 25, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Robot body - Carbon fiber look
+    const gradient = ctx.createLinearGradient(x - 25, y - 20, x + 25, y + 20);
+    gradient.addColorStop(0, '#1e293b');
+    gradient.addColorStop(0.5, '#334155');
+    gradient.addColorStop(1, '#0f172a');
+
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+
+    // Main body
+    ctx.beginPath();
+    ctx.roundRect(x - 30, y - 20, 60, 40, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Carbon fiber pattern
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    for (let i = -20; i < 20; i += 5) {
+        ctx.beginPath();
+        ctx.moveTo(x + i, y - 15);
+        ctx.lineTo(x + i + 10, y + 15);
+        ctx.stroke();
+    }
+
+    // Sensor (LiDAR)
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath();
+    ctx.arc(x, y - 25, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sensor glow
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+    ctx.beginPath();
+    ctx.arc(x, y - 25, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Scanning arc
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y - 25, 60, -Math.PI/3 - Date.now()/1000, Math.PI/3 - Date.now()/1000);
+    ctx.stroke();
+
+    // Tracks
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(x - 35, y + 15, 70, 12);
+    ctx.fillStyle = '#64748b';
+    for (let i = -30; i < 30; i += 10) {
+        ctx.fillRect(x + i, y + 15, 2, 12);
+    }
+
+    // Status LED
+    ctx.fillStyle = isRunning ? '#22c55e' : '#eab308';
+    ctx.beginPath();
+    ctx.arc(x + 20, y - 10, 4, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawTarget() {
+    const x = targetPos.x;
+    const y = targetPos.y;
+
+    // Pulsing ring
+    const pulse = (Math.sin(Date.now() / 500) + 1) / 2;
+    ctx.strokeStyle = `rgba(239, 68, 68, ${0.3 + pulse * 0.4})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, 20 + pulse * 10, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Target marker
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 15, y);
+    ctx.lineTo(x + 15, y);
+    ctx.moveTo(x, y - 15);
+    ctx.lineTo(x, y + 15);
+    ctx.stroke();
+}
+
+function drawParticles() {
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => {
+        ctx.fillStyle = `rgba(59, 130, 246, ${p.life})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+    });
+}
+
+function addParticle(x, y) {
+    particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        life: 1,
+        size: Math.random() * 3 + 1
+    });
+}
+
+// Animation loop
+let pathIndex = 0;
+let startTime;
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawGrid();
+    drawPath();
+    drawObstacles();
+    drawTarget();
+    drawRobot();
+    drawParticles();
+
+    if (isRunning && pathIndex < path.length - 1) {
+        const target = path[pathIndex + 1];
+        const dx = target.x - robotPos.x;
+        const dy = target.y - robotPos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 5) {
+            pathIndex++;
+        } else {
+            robotPos.x += (dx / dist) * config.speed;
+            robotPos.y += (dy / dist) * config.speed;
+
+            // Add trail particles
+            if (Math.random() > 0.7) {
+                addParticle(robotPos.x, robotPos.y);
+            }
+        }
+
+        // Update metrics randomly
+        if (Math.random() > 0.95) {
+            updateMetrics();
+        }
+    }
+
+    // Update sim time
+    if (isRunning) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const secs = (elapsed % 60).toString().padStart(2, '0');
+        document.getElementById('simTime').textContent = `${mins}:${secs}`;
+    }
+
+    animationId = requestAnimationFrame(animate);
+}
+
+function toggleSimulation() {
+    isRunning = !isRunning;
+    const btn = document.getElementById('simBtn');
+    const status = document.getElementById('statusText');
+
+    if (isRunning) {
+        btn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            暂停仿真
+        `;
+        btn.classList.remove('bg-blue-600');
+        btn.classList.add('bg-amber-600');
+        status.textContent = '运行中';
+        status.className = 'text-blue-400 font-medium';
+        if (!startTime) startTime = Date.now();
+    } else {
+        btn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            继续仿真
+        `;
+        btn.classList.remove('bg-amber-600');
+        btn.classList.add('bg-blue-600');
+        status.textContent = '已暂停';
+        status.className = 'text-amber-400 font-medium';
+    }
+}
+
+function resetSimulation() {
+    isRunning = false;
+    pathIndex = 0;
+    robotPos = { x: 50, y: canvas.height / 2 };
+    particles = [];
+    startTime = null;
+    document.getElementById('simTime').textContent = '00:00';
+
+    const btn = document.getElementById('simBtn');
+    btn.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        开始仿真
+    `;
+    btn.classList.remove('bg-amber-600');
+    btn.classList.add('bg-blue-600');
+    document.getElementById('statusText').textContent = '就绪';
+    document.getElementById('statusText').className = 'text-green-400 font-medium';
+
+    generateObstacles();
+    generatePath();
+}
+
+// Control functions
+function updateTerrain(value) {
+    config.terrain = parseInt(value);
+    const labels = ['平坦', '简单', '中等', '复杂', '极复杂'];
+    document.getElementById('terrainValue').textContent = labels[value - 1];
+    generatePath();
+    updateDifficulty();
+}
+
+function updateObstacles(value) {
+    config.obstacleDensity = parseInt(value);
+    document.getElementById('obstacleValue').textContent = value + '%';
+    generateObstacles();
+    generatePath();
+    updateDifficulty();
+}
+
+function updateLighting(value) {
+    config.lighting = parseInt(value);
+    const labels = ['明亮', '正常', '黑暗'];
+    document.getElementById('lightValue').textContent = labels[value - 1];
+
+    const canvas = document.getElementById('simCanvas');
+    if (value == 3) {
+        canvas.style.filter = 'brightness(0.6)';
+    } else if (value == 1) {
+        canvas.style.filter = 'brightness(1.2)';
+    } else {
+        canvas.style.filter = 'brightness(1)';
+    }
+}
+
+function updateDifficulty() {
+    const score = (config.terrain * 15) + (config.obstacleDensity * 0.8);
+    const bar = document.getElementById('difficultyBar');
+    const text = document.getElementById('difficultyText');
+
+    bar.style.width = Math.min(score, 100) + '%';
+
+    if (score < 30) {
+        text.textContent = 'C级';
+        text.className = 'text-sm font-bold text-green-400';
+        bar.className = 'bg-gradient-to-r from-green-500 to-green-400 h-full rounded-full transition-all duration-500';
+    } else if (score < 60) {
+        text.textContent = 'B级';
+        text.className = 'text-sm font-bold text-orange-400';
+        bar.className = 'bg-gradient-to-r from-orange-500 to-orange-400 h-full rounded-full transition-all duration-500';
+    } else {
+        text.textContent = 'A级';
+        text.className = 'text-sm font-bold text-red-400';
+        bar.className = 'bg-gradient-to-r from-red-600 to-red-500 h-full rounded-full transition-all duration-500';
+    }
+}
+
+function updateMetrics() {
+    const efficiency = 85 + Math.random() * 15;
+    const avoidance = 95 + Math.random() * 5;
+    document.getElementById('efficiency').textContent = efficiency.toFixed(1) + '%';
+    document.getElementById('avoidance').textContent = avoidance.toFixed(1) + '%';
+}
+
+// Start animation
+animate();
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
 
         <!-- Hero Section: 3D Model Viewer -->
