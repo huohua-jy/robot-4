@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能复合材料救援机器人仿真系统 | 顶配交互版</title>
+    <title>智能机器人避障仿真系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
@@ -14,37 +14,8 @@
                     colors: {
                         primary: '#165DFF',
                         cyan: '#36CFC9',
-                        success: '#52C41A',
-                        warning: '#FAAD14',
-                        danger: '#FF4D4F',
-                        light: '#F5F7FA',
-                        gray: '#86909C',
+                        light: '#F7F8FA',
                         border: '#E5E6EB'
-                    },
-                    boxShadow: {
-                        hover: '0 8px 24px rgba(22,93,255,0.15)',
-                        card: '0 4px 12px rgba(0,0,0,0.05)',
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s infinite',
-                        'scan': 'scan 2.5s linear infinite',
-                        'float': 'float 3s ease-in-out infinite',
-                        'fade': 'fade 0.4s ease',
-                        'bounce': 'bounce 0.6s ease'
-                    },
-                    keyframes: {
-                        scan: {
-                            '0%': { transform: 'rotate(0deg)' },
-                            '100%': { transform: 'rotate(360deg)' }
-                        },
-                        float: {
-                            '0%,100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-4px)' }
-                        },
-                        fade: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' }
-                        }
                     }
                 }
             }
@@ -52,398 +23,262 @@
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            .glass { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); border: 1px solid rgba(22,93,255,0.08); }
-            .gradient-border { position: relative; }
-            .gradient-border::before {
-                content: ''; position: absolute; inset: 0;
-                border-radius: 14px; padding: 1px;
-                background: linear-gradient(135deg,#165DFF,#36CFC9);
-                -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-                mask-composite: exclude;
-                pointer-events: none;
-            }
-            .slider-hover:hover::-webkit-slider-thumb { opacity:1; transform:scale(1.2); }
-            .slider-hover::-webkit-slider-thumb { appearance:none; width:18px; height:18px; background:#165DFF; border-radius:50%; transition:all 0.2s; opacity:0.8; }
+            .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); }
+            .slider::-webkit-slider-thumb { appearance: none; width:16px; height:16px; background:#165DFF; border-radius:50%; }
         }
     </style>
 </head>
-<body class="bg-light min-h-screen transition-all duration-500">
-<div class="max-w-7xl mx-auto p-4 md:p-6 pb-10 space-y-6">
+<body class="bg-light min-h-screen">
+<div class="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
 
-    <!-- 顶部标题栏 -->
-    <div class="glass rounded-2xl shadow-card p-5 flex flex-col md:flex-row md:items-center justify-between transition-all duration-300 hover:shadow-hover">
+    <div class="glass rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between shadow-sm">
         <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center animate-float">
-                <i class="fa fa-robot text-primary text-2xl"></i>
-            </div>
-            <div>
-                <h1 class="text-[clamp(1.2rem,3vw,1.9rem)] font-bold text-gray-900">智能复合材料救援机器人仿真系统</h1>
-                <p class="text-xs text-gray mt-1">Intelligent Composite Rescue Robot Simulation System</p>
-            </div>
+            <i class="fa fa-robot text-primary text-2xl"></i>
+            <h1 class="text-xl md:text-2xl font-bold">智能机器人避障路径仿真</h1>
         </div>
         <div class="flex gap-2 mt-3 md:mt-0">
-            <span class="px-3 py-1.5 rounded-full bg-primary/10 text-xs text-primary font-medium transition-all hover:scale-105"><i class="fa fa-check-circle mr-1"></i>实时仿真</span>
-            <span class="px-3 py-1.5 rounded-full bg-cyan/10 text-xs text-cyan font-medium transition-all hover:scale-105"><i class="fa fa-microchip mr-1"></i>AI避障</span>
-            <span class="px-3 py-1.5 rounded-full bg-success/10 text-xs text-success font-medium transition-all hover:scale-105"><i class="fa fa-shield mr-1"></i>自修复</span>
+            <span class="px-3 py-1 rounded-lg bg-primary/10 text-xs text-primary">实时避障</span>
+            <span class="px-3 py-1 rounded-lg bg-cyan/10 text-xs text-cyan">动态路径</span>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- 左侧控制面板 -->
-        <div class="lg:col-span-3 glass rounded-2xl shadow-card p-5 space-y-5 transition-all duration-300 hover:shadow-hover">
-            <h2 class="text-lg font-bold flex items-center gap-2">
-                <i class="fa fa-sliders text-primary animate-pulse-slow"></i>仿真控制台
-            </h2>
 
-            <!-- 地形滑块 -->
-            <div class="space-y-3 group">
-                <label class="text-sm font-medium flex justify-between transition-all group-hover:text-primary">
-                    <span>地形复杂度</span>
-                    <span id="tv" class="text-primary font-semibold">50%</span>
-                </label>
-                <input type="range" min="10" max="100" value="50" id="ts"
-                    class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer slider-hover transition-all">
-            </div>
+        <div class="lg:col-span-3 glass rounded-2xl p-5 shadow-sm">
+            <h2 class="text-lg font-bold mb-4">仿真控制</h2>
 
-            <!-- 障碍密度 -->
-            <div class="space-y-3 group">
-                <label class="text-sm font-medium flex justify-between transition-all group-hover:text-primary">
-                    <span>障碍物密度</span>
-                    <span id="ov" class="text-primary font-semibold">30%</span>
-                </label>
-                <input type="range" min="5" max="70" value="30" id="os"
-                    class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer slider-hover transition-all">
-            </div>
-
-            <!-- 速度控制 -->
-            <div class="space-y-3 group">
-                <label class="text-sm font-medium flex justify-between transition-all group-hover:text-primary">
-                    <span>机器人移动速度</span>
-                    <span id="sv" class="text-primary font-semibold">50%</span>
-                </label>
-                <input type="range" min="20" max="100" value="50" id="ss"
-                    class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer slider-hover transition-all">
-            </div>
-
-            <!-- 机器人结构示意图 -->
-            <div class="overflow-hidden">
-                <h3 class="text-sm font-bold mb-2">机器人结构示意图</h3>
-                <div class="relative w-full h-56 bg-white rounded-xl border border-border overflow-hidden flex items-center justify-center hover:border-primary/30 transition-all duration-300">
-                    <svg viewBox="0 0 240 200" class="w-full h-full p-3">
-                        <rect x="50" y="60" width="140" height="70" rx="10" fill="#E8F3FF" stroke="#165DFF" stroke-width="1.5"/>
-                        <rect x="55" y="65" width="130" height="18" rx="4" fill="#36CFC9" fill-opacity="0.4"/>
-                        <text x="120" y="78" font-size="7" fill="#1D2129" text-anchor="middle">自修复材料层</text>
-                        <text x="120" y="105" font-size="8" fill="#165DFF" text-anchor="middle" font-weight="bold">碳纤维轻量化机身</text>
-                        <circle cx="75" cy="135" r="16" fill="white" stroke="#6E7681" stroke-width="1.5"/>
-                        <circle cx="165" cy="135" r="16" fill="white" stroke="#6E7681" stroke-width="1.5"/>
-                        <text x="75" y="158" font-size="7" text-anchor="middle">驱动轮</text>
-                        <text x="165" y="158" font-size="7" text-anchor="middle">驱动轮</text>
-                        <rect x="105" y="38" width="30" height="20" rx="4" fill="#36CFC9"/>
-                        <line x1="120" y1="38" x2="120" y2="20" stroke="#36CFC9" stroke-width="1.5"/>
-                        <text x="120" y="15" font-size="7" fill="#36CFC9" text-anchor="middle" font-weight="bold">LiDAR雷达</text>
-                        <circle cx="70" cy="70" r="5" fill="#FF4D4F"/>
-                        <circle cx="170" cy="70" r="5" fill="#FF4D4F"/>
-                        <text x="70" y="60" font-size="6" fill="#FF4D4F" text-anchor="middle">视觉</text>
-                        <text x="170" y="60" font-size="6" fill="#FF4D4F" text-anchor="middle">视觉</text>
-                    </svg>
-                </div>
-            </div>
-
-            <!-- 材料特性 -->
-            <div class="space-y-3">
-                <div class="p-4 bg-white rounded-xl border border-border hover:border-primary/30 transition-all">
-                    <h3 class="text-sm font-bold">碳纤维轻量化</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm block mb-1">障碍物数量</label>
+                    <input type="range" min="5" max="50" value="12" id="obstacleCount" class="w-full slider">
                     <div class="flex justify-between text-xs mt-1">
-                        <span>强度提升</span>
-                        <span id="cv" class="text-primary font-semibold">45%</span>
-                    </div>
-                    <div class="h-2 w-full bg-gray-100 rounded-full mt-1 overflow-hidden">
-                        <div id="cb" class="h-full bg-primary transition-all duration-700" style="width:45%"></div>
+                        <span>少</span><span id="obstacleVal">12</span><span>多</span>
                     </div>
                 </div>
 
-                <div class="p-4 bg-white rounded-xl border border-border hover:border-cyan/30 transition-all">
-                    <h3 class="text-sm font-bold">自修复材料</h3>
-                    <p id="rs" class="text-xs text-gray mt-1">状态：待机</p>
-                    <button id="repair" class="mt-2 w-full py-2 rounded-lg bg-cyan/10 hover:bg-cyan/20 text-cyan text-sm border border-cyan/20 transition-all hover:scale-105 active:scale-95">
-                        <i class="fa fa-refresh mr-1"></i>触发自修复
-                    </button>
+                <div>
+                    <label class="text-sm block mb-1">移动速度</label>
+                    <input type="range" min="20" max="120" value="60" id="robotSpeed" class="w-full slider">
+                    <div class="flex justify-between text-xs mt-1">
+                        <span>慢</span><span id="speedVal">60</span><span>快</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- 控制按钮 -->
-            <div class="space-y-2 pt-1">
-                <button id="start" class="w-full py-3 rounded-xl bg-primary text-white font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95">
+            <div class="mt-6 space-y-2">
+                <button id="start" class="w-full py-2.5 bg-primary text-white rounded-xl font-medium hover:shadow-lg transition">
                     <i class="fa fa-play mr-1"></i>启动仿真
                 </button>
-                <button id="reset" class="w-full py-2.5 rounded-xl bg-white border border-border hover:bg-gray-50 transition-all hover:scale-105 active:scale-95">
-                    <i class="fa fa-refresh mr-1"></i>重置环境
+                <button id="reset" class="w-full py-2.5 bg-white border border-border rounded-xl hover:bg-gray-50 transition">
+                    <i class="fa fa-refresh mr-1"></i>重置
                 </button>
             </div>
         </div>
 
-        <!-- 中间：高级仿真画布 -->
-        <div class="lg:col-span-6 glass rounded-2xl shadow-card overflow-hidden relative gradient-border hover:shadow-hover transition-all">
+        <div class="lg:col-span-6 glass rounded-2xl relative overflow-hidden">
             <canvas id="sim" class="w-full h-full"></canvas>
-            <div id="tip" class="absolute top-4 left-4 glass px-3 py-1.5 rounded-lg text-xs shadow-sm animate-fade">
-                <i class="fa fa-info-circle text-primary mr-1"></i>调整参数后启动仿真
-            </div>
-            <div class="absolute bottom-4 right-4 flex gap-2">
-                <button id="mode2d" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs transition-all hover:scale-105">2D模式</button>
-                <button id="mode3d" class="px-3 py-1.5 rounded-lg bg-white border border-border text-xs transition-all hover:scale-105">伪3D模式</button>
-            </div>
         </div>
 
-        <!-- 右侧：数据中心 -->
-        <div class="lg:col-span-3 glass rounded-2xl shadow-card p-5 space-y-5 transition-all hover:shadow-hover">
-            <h2 class="text-lg font-bold flex items-center gap-2">
-                <i class="fa fa-bar-chart text-primary animate-pulse-slow"></i>实时数据中心
-            </h2>
-
+        <div class="lg:col-span-3 glass rounded-2xl p-5 shadow-sm">
+            <h2 class="text-lg font-bold mb-4">运行状态</h2>
             <div class="grid grid-cols-2 gap-3">
-                <div class="p-4 bg-white rounded-xl border border-border hover:border-primary/30 transition-all text-center">
-                    <p class="text-xs text-gray">路径规划效率</p>
-                    <p id="pe" class="text-2xl font-bold text-primary mt-1">0%</p>
+                <div class="p-3 bg-white rounded-xl border border-border text-center">
+                    <p class="text-xs text-gray-500">目标距离</p>
+                    <p id="dist" class="text-xl font-bold">--</p>
                 </div>
-                <div class="p-4 bg-white rounded-xl border border-border hover:border-cyan/30 transition-all text-center">
-                    <p class="text-xs text-gray">障碍物识别率</p>
-                    <p id="dr" class="text-2xl font-bold text-cyan mt-1">0%</p>
+                <div class="p-3 bg-white rounded-xl border border-border text-center">
+                    <p class="text-xs text-gray-500">完成进度</p>
+                    <p id="progress" class="text-xl font-bold text-primary">0%</p>
                 </div>
-                <div class="p-4 bg-white rounded-xl border border-border hover:border-gray/30 transition-all text-center">
-                    <p class="text-xs text-gray">机身重量(kg)</p>
-                    <p id="wg" class="text-2xl font-bold mt-1">12.8</p>
+                <div class="p-3 bg-white rounded-xl border border-border text-center">
+                    <p class="text-xs text-gray-500">避障次数</p>
+                    <p id="avoidCount" class="text-xl font-bold">0</p>
                 </div>
-                <div class="p-4 bg-white rounded-xl border border-border hover:border-success/30 transition-all text-center">
-                    <p class="text-xs text-gray">修复完成度</p>
-                    <p id="rc" class="text-2xl font-bold text-success mt-1">0%</p>
+                <div class="p-3 bg-white rounded-xl border border-border text-center">
+                    <p class="text-xs text-gray-500">运行状态</p>
+                    <p id="state" class="text-xl font-bold text-cyan">待机</p>
                 </div>
             </div>
 
-            <div class="p-4 bg-white rounded-xl border border-border hover:border-primary/20 transition-all">
-                <h3 class="text-sm font-bold mb-2">性能趋势图</h3>
-                <div class="h-44"><canvas id="chart"></canvas></div>
-            </div>
-
-            <div class="space-y-2">
-                <h3 class="text-sm font-bold">系统运行日志</h3>
-                <div id="log" class="h-40 p-3 bg-white rounded-xl border border-border text-xs overflow-y-auto space-y-1 hover:border-primary/20 transition-all">
-                    <p class="text-gray">[系统] 等待启动指令...</p>
-                </div>
+            <div class="mt-5">
+                <h3 class="text-sm font-bold mb-2">运行日志</h3>
+                <div id="log" class="h-36 bg-white rounded-xl border border-border p-2 text-xs overflow-y-auto"></div>
             </div>
         </div>
-    </div>
 
-    <!-- 底部状态栏 -->
-    <div class="glass rounded-2xl p-4 text-center text-xs text-gray transition-all hover:text-primary">
-        智能复合材料救援机器人仿真系统 © 2026 | 白色科技 · 顶配交互版 | 支持：路径规划 | 智能避障 | 自修复 | 碳纤维可视化
     </div>
 </div>
 
 <script>
 const canvas = document.getElementById('sim');
 const ctx = canvas.getContext('2d');
-const chartjs = new Chart(document.getElementById('chart').getContext('2d'),{
-    type:'line',data:{labels:Array(12).fill(''),datasets:[
-        {label:'效率',data:Array(12).fill(0),borderColor:'#165DFF',tension:0.3},
-        {label:'识别',data:Array(12).fill(0),borderColor:'#36CFC9',tension:0.3}
-    ]},options:{responsive:true,maintainAspectRatio:false}
-});
 
-function resize(){canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;}
-window.addEventListener('resize',resize);resize();
+function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+}
+window.addEventListener('resize', resize);
+resize();
 
-let isRunning=false,terrain=50,obstacle=30,speed=50,obstacles=[],repair=0,repairTimer;
-let robot={x:60,y:canvas.height-60,w:36,h:36},target={x:canvas.width-90,y:90};
-let mode2d=true;
+let obstacleCount = 12;
+let robotSpeed = 60;
+let isRunning = false;
 
-function $(id){return document.getElementById(id);}
-function log(text){
-    const logBox = $('log');
-    logBox.innerHTML += `<p class="text-primary animate-fade">${text}</p>`;
-    logBox.scrollTop = logBox.scrollHeight;
+let robot = { x: 50, y: canvas.height - 50, r: 14 };
+let target = { x: canvas.width - 80, y: 80 };
+let obstacles = [];
+let avoidCount = 0;
+
+function $(id) { return document.getElementById(id); }
+function log(text) {
+    $('log').innerHTML += `<p class="text-primary">${text}</p>`;
+    $('log').scrollTop = $('log').scrollHeight;
 }
 
-function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
-    if(!mode2d){ctx.fillStyle='rgba(0,0,0,0.03)';ctx.fillRect(0,canvas.height/2,canvas.width,canvas.height/2);}
-    
-    // 动态网格
-    ctx.strokeStyle='#E5E6EB';
-    for(let x=0;x<canvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
-    for(let y=0;y<canvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
-    
-    // 目标点
-    ctx.fillStyle='#36CFC9';
+function createObstacles() {
+    obstacles = [];
+    for (let i = 0; i < obstacleCount; i++) {
+        let x = Math.random() * (canvas.width - 200) + 100;
+        let y = Math.random() * (canvas.height - 200) + 100;
+        let r = Math.random() * 12 + 8;
+        obstacles.push({ x, y, r });
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 网格
+    ctx.strokeStyle = '#eee';
+    for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+
+    // 目标
+    ctx.fillStyle = '#36CFC9';
     ctx.beginPath();
-    ctx.arc(target.x,target.y,16,0,Math.PI*2);
+    ctx.arc(target.x, target.y, 12, 0, Math.PI * 2);
     ctx.fill();
 
     // 障碍物
-    obstacles.forEach(o=>{
-        ctx.fillStyle=o.d?'rgba(255,77,79,0.75)':'rgba(150,150,150,0.35)';
-        ctx.fillRect(o.x,o.y,o.w,o.h);
-        ctx.strokeStyle=o.d?'#FF4D4F':'#D0D3D9';
-        ctx.strokeRect(o.x,o.y,o.w,o.h);
+    obstacles.forEach(o => {
+        ctx.fillStyle = '#ddd';
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+        ctx.fill();
     });
 
-    // 机器人（带悬浮动画）
-    ctx.fillStyle='#165DFF';
-    const offset = Math.sin(Date.now()/300)*3;
-    if(mode2d)ctx.fillRect(robot.x-robot.w/2,robot.y-robot.h/2 + offset,robot.w,robot.h);
-    else ctx.fillRect(robot.x-robot.w/2,robot.y-robot.h/1.5 + offset,robot.w,robot.h);
-    
-    ctx.strokeStyle='#36CFC9';ctx.lineWidth=2;
-    ctx.strokeRect(robot.x-robot.w/2,robot.y-robot.h/2 + offset,robot.w,robot.h);
+    // 机器人
+    ctx.fillStyle = '#165DFF';
+    ctx.beginPath();
+    ctx.arc(robot.x, robot.y, robot.r, 0, Math.PI * 2);
+    ctx.fill();
 
-    // 雷达扫描动画（交互增强）
-    if(isRunning){
-        ctx.strokeStyle='rgba(22,93,255,0.15)';
+    // 雷达探测
+    if (isRunning) {
+        ctx.strokeStyle = 'rgba(22,93,255,0.15)';
         ctx.beginPath();
-        ctx.arc(robot.x,robot.y + offset,60,0,Math.PI*2);
+        ctx.arc(robot.x, robot.y, 70, 0, Math.PI * 2);
         ctx.stroke();
-        
-        let angle=Date.now()%360;
-        ctx.save();
-        ctx.translate(robot.x,robot.y + offset);
-        ctx.rotate(angle*Math.PI/180);
-        ctx.strokeStyle='rgba(22,93,255,0.3)';
-        ctx.beginPath();
-        ctx.moveTo(0,0);
-        ctx.lineTo(60,0);
-        ctx.stroke();
-        ctx.restore();
     }
 }
 
-function genObs(){
-    obstacles=[];let c=Math.floor(obstacle/1.5);
-    for(let i=0;i<c;i++)obstacles.push({
-        x:Math.random()*(canvas.width-140)+70,
-        y:Math.random()*(canvas.height-200)+100,
-        w:Math.random()*45+25,
-        h:Math.random()*45+25,
-        d:false
-    });
-}
+function updateRobot() {
+    let speed = robotSpeed / 70;
 
-function detect(){
-    obstacles.forEach(o=>{
-        const dx=robot.x-(o.x+o.w/2),dy=robot.y-(o.y+o.h/2);
-        if(Math.hypot(dx,dy)<90)o.d=true;
-    });
-    const t=obstacles.length||1,r=Math.floor((obstacles.filter(o=>o.d).length/t)*100);
-    $('dr').textContent=r+'%';
-    return r;
-}
-
-function move(){
-    let spd=speed/30;
-    if(robot.x<target.x)robot.x+=spd;
-    if(robot.y>target.y)robot.y-=spd;
-    obstacles.forEach(o=>{
-        if(robot.x>o.x-30&&robot.x<o.x+o.w+30&&robot.y>o.y-30&&robot.y<o.y+o.h+30){
-            robot.x+=spd*2;robot.y-=spd*1.5;
-        }
-    });
-    const total=Math.hypot(target.x-60,target.y-(canvas.height-60));
-    const now=Math.hypot(target.x-robot.x,target.y-robot.y);
-    const eff=Math.min(100,Math.floor(100-(now/total)*100));
-    $('pe').textContent=eff+'%';
-    if(now<25)stop();
-}
-
-function startRepair(){
-    clearInterval(repairTimer);repair=0;$('rs').textContent='状态：修复中...';
-    repairTimer=setInterval(()=>{
-        repair++;
-        $('rc').textContent=repair+'%';
-        if(repair>=100){
-            clearInterval(repairTimer);
-            $('rs').textContent='状态：修复完成 ✅';
-            log('自修复材料：机身已完全修复');
-        }
-    },40);
-}
-
-function start(){
-    if(isRunning)return;
-    isRunning=true;
-    $('tip').style.display='none';
-    $('start').innerHTML='<i class="fa fa-spinner fa-spin mr-1"></i>运行中';
-    $('start').disabled=true;
-    genObs();
-    robot.x=60;
-    robot.y=canvas.height-60;
-    repair=0;
-    $('rc').textContent='0%';
-    log(`[启动] 地形：${terrain}% | 障碍：${obstacle}% | 速度：${speed}%`);
-    log('[机器人] 路径规划启动 · 障碍物识别启动');
-    
-    function loop(){
-        if(!isRunning)return;
-        draw();
-        detect();
-        move();
-        requestAnimationFrame(loop);
+    // 向目标移动
+    let dx = target.x - robot.x;
+    let dy = target.y - robot.y;
+    let dist = Math.hypot(dx, dy);
+    if (dist > 1) {
+        robot.x += (dx / dist) * speed;
+        robot.y += (dy / dist) * speed;
     }
+
+    // 避障逻辑
+    obstacles.forEach(o => {
+        let d = Math.hypot(robot.x - o.x, robot.y - o.y);
+        let safe = robot.r + o.r + 30;
+        if (d < safe) {
+            let px = robot.x - o.x;
+            let py = robot.y - o.y;
+            robot.x += (px / d) * speed * 1.8;
+            robot.y += (py / d) * speed * 1.8;
+            avoidCount++;
+        }
+    });
+
+    // 状态更新
+    let totalDist = Math.hypot(target.x - 50, target.y - (canvas.height - 50));
+    let progress = Math.min(100, Math.floor(100 - (dist / totalDist) * 100));
+    $('dist').textContent = Math.round(dist);
+    $('progress').textContent = progress + '%';
+    $('avoidCount').textContent = avoidCount;
+
+    if (dist < 20) {
+        stop();
+        log('已到达目标点');
+    }
+}
+
+function loop() {
+    if (!isRunning) return;
+    updateRobot();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+function start() {
+    if (isRunning) return;
+    isRunning = true;
+    $('state').textContent = '运行中';
+    $('start').disabled = true;
+    $('start').innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i>运行中';
+    log('仿真启动');
     loop();
 }
 
-function stop(){
-    isRunning=false;
-    $('start').innerHTML='<i class="fa fa-play mr-1"></i>启动仿真';
-    $('start').disabled=false;
-    log('[完成] 机器人已到达目标点');
+function stop() {
+    isRunning = false;
+    $('state').textContent = '完成';
+    $('start').disabled = false;
+    $('start').innerHTML = '<i class="fa fa-play mr-1"></i>启动仿真';
 }
 
-function reset(){
+function reset() {
     stop();
-    terrain=50;obstacle=30;speed=50;
-    $('ts').value=50;$('os').value=30;$('ss').value=50;
-    $('tv').textContent='50%';$('ov').textContent='30%';$('sv').textContent='50%';
-    $('pe').textContent='0%';$('dr').textContent='0%';$('rc').textContent='0%';
-    $('rs').textContent='状态：待机';
-    $('log').innerHTML='<p class="text-gray">[系统] 等待启动指令...</p>';
+    robot.x = 50;
+    robot.y = canvas.height - 50;
+    avoidCount = 0;
+    $('dist').textContent = '--';
+    $('progress').textContent = '0%';
+    $('avoidCount').textContent = '0';
+    $('state').textContent = '待机';
+    $('log').innerHTML = '';
+    createObstacles();
     draw();
-    $('tip').style.display='block';
 }
 
-// 交互增强：滑块实时反馈
-$('ts').addEventListener('input',()=>{
-    terrain=parseInt($('ts').value);
-    $('tv').textContent=terrain+'%';
-    const v=Math.floor(terrain*0.9);
-    $('cb').style.width=v+'%';
-    $('cv').textContent=v+'%';
-    $('wg').textContent=(15-(v/10)).toFixed(1);
-});
-$('os').addEventListener('input',()=>{
-    obstacle=parseInt($('os').value);
-    $('ov').textContent=obstacle+'%';
-});
-$('ss').addEventListener('input',()=>{
-    speed=parseInt($('ss').value);
-    $('sv').textContent=speed+'%';
+// 滑块
+$('obstacleCount').addEventListener('input', () => {
+    obstacleCount = +$('obstacleCount').value;
+    $('obstacleVal').textContent = obstacleCount;
 });
 
-$('start').addEventListener('click',start);
-$('reset').addEventListener('click',reset);
-$('repair').addEventListener('click',()=>{
-    startRepair();
-    log('[材料] 自修复功能已触发');
-});
-$('mode2d').addEventListener('click',()=>{
-    mode2d=true;
-    $('mode2d').classList.add('bg-primary','text-white');
-    $('mode3d').classList.remove('bg-primary','text-white');
-});
-$('mode3d').addEventListener('click',()=>{
-    mode2d=false;
-    $('mode3d').classList.add('bg-primary','text-white');
-    $('mode2d').classList.remove('bg-primary','text-white');
+$('robotSpeed').addEventListener('input', () => {
+    robotSpeed = +$('robotSpeed').value;
+    $('speedVal').textContent = robotSpeed;
 });
 
+$('start').addEventListener('click', start);
+$('reset').addEventListener('click', reset);
+
+createObstacles();
 draw();
 </script>
 </body>
